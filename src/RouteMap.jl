@@ -3,6 +3,6 @@ module RouteMap.jl
     using LuxorLabels
     import Luxor
     struct Leg
-
+        x
     end
 end

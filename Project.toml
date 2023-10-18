@@ -1,3 +1,8 @@
+name = "RouteMap"
+uuid = "d7e0e77e-ebb7-4d52-98f7-0a2e09d5d09a"
+authors = ["hustf <hustf@users.noreply.github.com> and contributors"]
+version = "0.0.1"
+
 [deps]
 Luxor = "ae8d54c2-7ccd-5906-9d76-62fc9837b5bc"
 LuxorLabels = "bc38f42f-d837-40aa-8305-15f3941c28e9"
