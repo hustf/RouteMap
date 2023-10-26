@@ -4,6 +4,8 @@ authors = ["hustf <hustf@users.noreply.github.com> and contributors"]
 version = "0.0.1"
 
 [deps]
+BenchmarkTools = "6e4b80f9-dd63-53aa-95a3-0cdb28fa8baf"
+ColorSchemes = "35d6a980-a343-548e-a6ea-1d62b119f2f4"
 Luxor = "ae8d54c2-7ccd-5906-9d76-62fc9837b5bc"
 LuxorLabels = "bc38f42f-d837-40aa-8305-15f3941c28e9"
 LuxorLayout = "909dfbbc-cb73-418e-9556-eed3773b40ca"

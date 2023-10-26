@@ -2,7 +2,9 @@
 
 ## What does it do?
 
-Put geometric data and labels into a set of Legs. 
+Put geometric data and labels into a set of Legs. Merge legs in a smart way when trying to add new but similar ones.
+
+Effectively select legs from bounding boxes.
 
 Create .svg and .bmp graphics showing legs in a birds-eye view. 
 
