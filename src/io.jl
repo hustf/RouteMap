@@ -42,3 +42,15 @@ function Base.show(io::IO, l::Label)
     printstyled(io, round(l.y; digits = 1), color = :blue)
     print(io, ")")
 end
+function Base.show(io::IO, m::ModelSpace)
+    print(io, repr(typeof(m)), "(")
+    vs = fieldnames(typeof(m))
+    for (i, fi) in enumerate(vs)
+        print(io, "\t", rpad(fi, 22), " = ")
+        printstyled(io, getfield(m, fi),  color=:green)
+        if i < length(vs)
+            println(io, ", ")
+        end
+    end
+    print(io, ")")
+end

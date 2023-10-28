@@ -1,7 +1,7 @@
 module RouteMap
 
 export Leg, add_or_update_if_not_redundant!, LabelUTM, LabelModelSpace
-
+export model_activate, plot_leg_in_model_space, snap_with_labels
 using LuxorLayout, LuxorLabels, ColorSchemes
 using ColorSchemes: Colorant
 import Luxor
@@ -9,6 +9,7 @@ using Luxor: Drawing, background, setline, settext, BoundingBox
 using Luxor: sethue, get_current_color, poly, Point, setcolor, fontsize
 using Luxor: @layer, O, textextents, setopacity, text, setdash, line, circle
 using Luxor: midpoint, box, boundingboxesintersect
+using Luxor: newpath, do_action
 import Base: show
 import Base.Iterators
 
@@ -95,7 +96,7 @@ end
         # We could also adjust the value by prominence, but don't find that necessary.
         crashpadding::Float64 = 2.14
         marker_color::Colorant = foreground
-        P::Vector{LabelModelSpace} = LabelModelSpace[]
+        labels::Vector{LabelModelSpace} = LabelModelSpace[]
 end
 
 include("utils.jl")

@@ -1,5 +1,7 @@
 include("t_world_space.jl")
+include("t_draw.jl")
 # Time to draw a little.
+# Experiment.
 using Luxor, LuxorLayout
 Drawing(NaN, NaN, :rec)
 background("yellow")
@@ -13,7 +15,8 @@ w = map(xy -> Point(xy[1], xy[2]), zip(wx, wy))
 encompass(v)
 encompass(w)
 setcolor("red")
-poly(v, action=:stroke)
-setcolor("blue")
-poly(w, action=:stroke)
+
+
+
+RouteMap.poly_with_discontinuities([v, w], action=:stroke)
 snap()

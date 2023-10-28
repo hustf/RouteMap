@@ -1,0 +1,1 @@
+# Helper functions that may be used from here or there

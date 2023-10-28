@@ -68,28 +68,30 @@ end
 
 """
     add_or_update_if_not_redundant!(legs::Vector{Leg}; 
-        AB = Mls(), 
-        BA = Mls(), 
+        ABx = Float64[], 
+        ABy = Float64[], 
+        BAx = Float64[], 
+        BAy = Float64[], 
         text_A::String = "", 
         text_B::String = "",
-        prominence_A = 1.0,
-        prominence_B = 1.0) 
+        prominence_A::Float64 = 1.0,
+        prominence_B::Float64 = 1.0)
     ---> Vector{Leg}
 
-Adds a new Leg to the end of `legs`. The position of label A is tied to the first poin in 
+Adds a new Leg to a set-like vector of Legs. 
+The position of label A is tied to the first point in (ABx[1], ABy[1]).
 
+# Rules by which the set is grown (or not):
 
-# Rules
+    1)    A to B and B to A may not exist as separate legs in the same collection.
 
-    1)    A to B and B to A may not exist in the same collection.
-
-    2)    Legs may have two paths (multi_linestring), but only if they are not symmetric.
+    2)    Legs may have two paths (multi_linestring), but only if they are not fully symmetric.
     
     3)    If a Leg with a low-priority label exists in a collection, and 
-          a leg with equal boundingbox is attempted to be added, then: 
-          Labels with low prominence are replaced by high prominence labels.
+          a leg with sufficiently equal path but high-priority labels is attempted to be added, then: 
+          Legs merge, and the label with highest priority (i.e. low prominence number) is kept.
     
-    4)    The boundingbox encompasses both paths. It is intended for selecting legs. 
+    4)    The boundingbox encompasses both AB and BA paths. It is intended for selecting legs. 
 """
 function add_or_update_if_not_redundant!(legs::Vector{Leg}; 
     ABx = Float64[], 
@@ -124,9 +126,10 @@ function add_or_update_if_not_redundant!(legs::Vector{Leg}, leg::Leg)
         return legs
     else
         # None were equal. Think!
-        throw("hmmm")
+        throw("hmmm, uncovered. How did that happen?")
     end
 end
+
 
 function indices_of_intersecting_boundary_boxes(legs::Vector{Leg}, leg::Leg) 
     findall(legs) do leg_in_collection
