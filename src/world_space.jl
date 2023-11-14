@@ -59,8 +59,8 @@ function Leg(;ABx = Float64[],
         @assert abs(xb_alt - xb) < 100
         @assert abs(yb_alt - yb) < 100
     end
-    lba = LabelUTM(text_A, prominence_A, xa, ya)
-    lbb = LabelUTM(text_B, prominence_B, xb, yb)
+    lba = LabelUTM(text_A, prominence_A, round(xa), round(ya))
+    lbb = LabelUTM(text_B, prominence_B, round(xb), round(yb))
     bb_utm = BoundingBox(Point.(vcat(ABx, BAx), vcat(ABy, BAy)))
     Leg(lba, lbb, bb_utm, ABx, ABy, BAx, BAy)
 end
@@ -75,10 +75,13 @@ end
         text_A::String = "", 
         text_B::String = "",
         prominence_A::Float64 = 1.0,
-        prominence_B::Float64 = 1.0)
+        prominence_B::Float64 = 1.0,
+        threshold::Float64 = 95.0)
+    add_or_update_if_not_redundant!(legs::Vector{Leg}, leg::Leg; threshold = 95.0)
     ---> Vector{Leg}
 
-Adds a new Leg to a set-like vector of Legs. 
+Adds a new Leg to a set-like vector of Legs. Uniqueness is influenced by `threshold`, see 
+`are_paths_close`.
 The position of label A is tied to the first point in (ABx[1], ABy[1]).
 
 # Rules by which the set is grown (or not):
@@ -101,12 +104,13 @@ function add_or_update_if_not_redundant!(legs::Vector{Leg};
     text_A::String = "", 
     text_B::String = "",
     prominence_A::Float64 = 1.0,
-    prominence_B::Float64 = 1.0)
+    prominence_B::Float64 = 1.0,
+    threshold::Float64 = 95.0)
     # Create the new leg before checking if it fits in the collection of legs
     leg = Leg(;    ABx, ABy, BAx, BAy, text_A, text_B, prominence_A, prominence_B)
-    add_or_update_if_not_redundant!(legs, leg)
+    add_or_update_if_not_redundant!(legs, leg; threshold)
 end
-function add_or_update_if_not_redundant!(legs::Vector{Leg}, leg::Leg)
+function add_or_update_if_not_redundant!(legs::Vector{Leg}, leg::Leg; threshold = 95.0)
     maybe_equal_indices = indices_of_intersecting_boundary_boxes(legs, leg)
     if isempty(maybe_equal_indices)
         # Nothing with similar boundingbox to leg in legs; add leg!
@@ -114,9 +118,8 @@ function add_or_update_if_not_redundant!(legs::Vector{Leg}, leg::Leg)
     end
     indices_close_or_equal = maybe_equal_indices[findall(maybe_equal_indices) do i
         l = legs[i]
-        are_paths_close(l, leg)
+        are_paths_close(l, leg; threshold)
     end]
-    @assert length(indices_close_or_equal) < 2 "Two sufficiently equal legs exist in `legs` already"
     if  length(indices_close_or_equal) == 1
         i = first(indices_close_or_equal)
         # leg practically equals legs[i]. So we don't need to add more legs, 
@@ -124,9 +127,18 @@ function add_or_update_if_not_redundant!(legs::Vector{Leg}, leg::Leg)
         mergedleg = merge_redundant_legs(legs[i], leg)
         legs[i] = mergedleg
         return legs
-    else
-        # None were equal. Think!
-        throw("hmmm, uncovered. How did that happen?")
+    elseif isempty(indices_close_or_equal)
+        # Although this leg has bounding box overlapping with other legs,
+        # the leg paths were not sufficiently close to be merged.
+        return push!(legs, leg)
+    elseif length(indices_close_or_equal) > 1
+        @warn "Not sure how this could happen. Why are two of the existing legs close or equal to this one? Dropping merge."
+        for i in indices_close_or_equal
+            @show i legs[i]
+            # There may be borderline cases where this happen....
+            @assert length(indices_close_or_equal) < 2 "Two sufficiently equal legs exist in `legs` already"
+        end
+        return legs
     end
 end
 
@@ -158,6 +170,11 @@ function merge_redundant_legs_with_same_direction(leg1, leg2)
     # We keep the most important label, of both A and B
     lba = label_in_close_proximity_to_keep(leg1.label_A, leg2.label_A)
     lbb = label_in_close_proximity_to_keep(leg1.label_B, leg2.label_B)
+    if lba.text !== leg1.label_A.text || lbb.text !== leg1.label_B.text
+        printstyled("        A1B1   : $(leg1.label_A.text) - $(leg1.label_B.text) B2A2: $(leg2.label_B.text) - $(leg2.label_A.text) ", color =:red)
+        printstyled("\nis now: A1B1   : $(lba.text) - $(lbb.text) B2A2: $(lbb.text) - $(lba.text)\n", color =:green)
+        throw("check that!")
+    end
     if ! isempty(leg1.BAx)
         # leg1 has asymmetric directions, so keep A1B1 and B1A1
         bb_utm, ABx, ABy, BAx, BAy = leg1.bb_utm, leg1.ABx, leg1.ABy, leg1.BAx, leg1.BAy
@@ -196,6 +213,7 @@ function label_in_close_proximity_to_keep(lab1::Label, lab2::Label)
         # Keep label 1
         if lab1.text !== lab2.text
             @warn "Keeping \"$(lab1.text)\", discarding \"$(lab2.text)\""
+            throw("Nah...|")
         end
         lab1
     else 
@@ -207,8 +225,8 @@ end
 
 
 """
-    are_paths_close((leg1, leg2; threshold = 100.0)
-    are_paths_close(vx, vy, wx, wy; threshold = 100.0)
+    are_paths_close((leg1, leg2; threshold = 95.0)
+    are_paths_close(vx, vy, wx, wy; threshold = 95.0)
     ---> Bool
 
 The default threshold corresponds to a very large roundabout.
@@ -229,14 +247,30 @@ julia> julia> are_paths_close(vx, vy, wx, wy; threshold = 150)
 true
 ```
 """
-function are_paths_close(vx, vy, wx, wy; threshold = 100.0)
-    # If the path v is roughly the reverse of w, we would needlessly iterate from the wrong end
+function are_paths_close(vx, vy, wx, wy; threshold = 95.0)
+    # It is hard to determine which path is the longest, since
+    # density and shape can vary widely. So we check v ~> w, then v ~> w
+    if are_all_points_of_path_v_close_to_path_w(vx, vy, wx, wy; threshold)
+        if are_all_points_of_path_v_close_to_path_w(wx, wy, vx, vy; threshold)
+            #
+            return true
+        end
+    end
+    false
+end
+
+function are_all_points_of_path_v_close_to_path_w(vx, vy, wx, wy; threshold = 95.0)
+    # We need to check the distance from every point in v:
+    v_iterator = zip(vx, vy)
+    # If one path is roughly the reverse of the other, we would needlessly iterate 
+    # from the wrong end and spend more calculation time (with some common paths, for 
+    # example completely equal paths).
     if are_paths_most_likely_reversed(vx, vy, wx, wy)
         w_iterator = Iterators.reverse(zip(wx, wy))
     else
         w_iterator = zip(wx, wy)
     end
-    for (x1, y1) in zip(vx, vy)
+    for (x1, y1) in v_iterator
         close_enough_found = false
         for (x2, y2) in w_iterator
             if distance(x1, y1, x2, y2) < threshold
@@ -244,13 +278,17 @@ function are_paths_close(vx, vy, wx, wy; threshold = 100.0)
                 break
             end
         end
+        # If just one point on v is not close enough to w,
+        # exit early!
         if ! close_enough_found
             return false
         end
     end
     return true
 end
-are_paths_close(leg1, leg2; threshold = 100.0) = are_paths_close(leg1.ABx, leg1.ABy, leg2.ABx, leg2.ABy; threshold)
+
+
+are_paths_close(leg1, leg2; threshold = 95.0) = are_paths_close(leg1.ABx, leg1.ABy, leg2.ABx, leg2.ABy; threshold)
 
 distance(x1, y1, x2, y2) = sqrt((x1 - x2)^2 + (y1 - y2)^2)
 are_paths_most_likely_reversed(vx, vy, wx, wy) = distance(vx[1], vy[1], wx[1], wy[1]) > distance(vx[1], vy[1], wx[end], wy[end])

@@ -36,11 +36,13 @@ function plot_leg_in_model_space(m::ModelSpace, l::Leg)
         setcolor(m.marker_color)
         circle(pointA, m.FS / 2, :stroke)
     end
-    # Map labels to the models' collection.
+    # Map labels to the models' collection, avoiding duplicate labels.
     # Depending on zoom etc, some of those labels may not be displayed always.
     # Labels are always drawn in paper space.
-    push!(m.labels, LabelModelSpace(m, l.label_A))
-    push!(m.labels, LabelModelSpace(m, l.label_B))
+    lbma = LabelModelSpace(m, l.label_A)
+    lbmb = LabelModelSpace(m, l.label_B)
+    !in(lbma, m.labels) && push!(m.labels, lbma)
+    !in(lbmb, m.labels) && push!(m.labels, lbmb)
 end
 
 
@@ -62,7 +64,9 @@ function poly_with_discontinuities(v_nested::Vector{Vector{Point}};
         reversepath = false)
     newpath()
     for v in v_nested
-        poly(v; action =:path, close, reversepath)
+        if ! isempty(v)
+            poly(v; action =:path, close, reversepath)
+        end
     end
     do_action(action)
     return v_nested

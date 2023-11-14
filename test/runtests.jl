@@ -19,4 +19,6 @@ setcolor("red")
 
 
 RouteMap.poly_with_discontinuities([v, w], action=:stroke)
+line(v[1], w[1], :stroke)
+rect(v[1].x, v[1].y, 40, 20, :fill)
 snap()

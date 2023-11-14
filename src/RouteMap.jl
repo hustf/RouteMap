@@ -1,7 +1,7 @@
 module RouteMap
 
 export Leg, add_or_update_if_not_redundant!, LabelUTM, LabelModelSpace
-export model_activate, plot_leg_in_model_space, snap_with_labels
+export model_activate, plot_leg_in_model_space, plot_legs_in_model_space, snap_with_labels
 using LuxorLayout, LuxorLabels, ColorSchemes
 using ColorSchemes: Colorant
 import Luxor

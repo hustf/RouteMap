@@ -1,4 +1,5 @@
-function plot_prominent_labels_from_paper_space(; model_to_paper_scale, O_model_in_paper_space, model::ModelSpace)
+function plot_prominent_labels_from_paper_space(; model_to_paper_scale, O_model_in_paper_space, 
+            model::ModelSpace, show_crash_boxes = false)
     # This function is run in a separate thread, working on 'paper space',
     # and without affecting what's on the canvas (model space).
     text = map(l -> l.text, model.labels)
@@ -15,21 +16,38 @@ function plot_prominent_labels_from_paper_space(; model_to_paper_scale, O_model_
         posline = true)
     selected_indexes, selected_padding_bounding_boxes = labels_prominent(f, text, pt_in_paper_space, prominence;
         crashpadding = model.crashpadding, anchor = "left")
-    # Mark anchor points and boundingboxes used for prioritizing for adjustment
-    #for (i, b) in zip(selected_indexes, selected_padding_bounding_boxes)
-    #    circle(pt_in_paper_space[i], 1, :stroke)
-    #    box(b, :stroke)
-    #end
+    if show_crash_boxes
+        # Mark anchor points and boundingboxes. Use when iterating for a size to display all labels. 
+        for (i, b) in zip(selected_indexes, selected_padding_bounding_boxes)
+            circle(pt_in_paper_space[i], 1, :stroke)
+            box(b, :stroke)
+        end
+    end
 end
 
+"""
+    snap_with_labels(m::ModelSpace; show_crash_boxes = false)
+    ---> Vector{Float64}
 
-function snap_with_labels(m::ModelSpace) 
+# Example, iterating to find a good plot size for a map.
+```
+julia> model = model_activate(;countimage_startvalue = 9, limiting_height = 2 * 1344, limiting_width = 2 * 1792) 
+julia> plot_legs_in_model_space(model, legs)
+julia> using Logging
+julia> with_logger(Logging.ConsoleLogger(stderr, Logging.Debug)) do                                                                                                                                                                                 
+    snap_with_labels(model)                                                                                                                                                                                                                  
+end
+julia> snap_with_labels(model; show_crash_boxes = true)
+```
+"""
+function snap_with_labels(m::ModelSpace; show_crash_boxes = false) 
     model_to_paper_scale = scale_limiting_get()
     O_model_in_paper_space = (O - midpoint(inkextent_user_with_margin())) * scale_limiting_get()
     snap(plot_prominent_labels_from_paper_space; 
         model = m,
         model_to_paper_scale,
-        O_model_in_paper_space)
+        O_model_in_paper_space, 
+        show_crash_boxes)
 end
 
 
@@ -52,7 +70,8 @@ function text_offset_dropshadow(txt, pt, prominence, m::ModelSpace;
         lineoffs = offs
     end
     @layer begin
-        fontsize(m.FS + 4 - 4 * prominence)
+        # For default setting FS = 22: prominence 1 => 22, 2 => 18 3 => 14
+        fontsize(round(m.FS *  ( 1 - 0.182 * (prominence - 1)))) # WAS fontsize(m.FS + 4 - 4 * prominence)
         setopacity(1)
         sethue(m.colorscheme[9])
         # Text shadow 
