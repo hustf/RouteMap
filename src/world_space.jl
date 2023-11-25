@@ -48,7 +48,7 @@ function Leg(;ABx = Float64[],
     xa, ya = ABx[1], ABy[1]
     xb, yb = ABx[end], ABy[end]
     if ! isempty(BAx)
-        # An alternative path, if provided, must 
+        # An alternative path, BA, if provided, must 
         # start and end in proximity to A and B.
         # The difference, if any, is from stops where
         # exit and enty points differ. Less than 100 m...
@@ -77,7 +77,7 @@ end
         prominence_A::Float64 = 1.0,
         prominence_B::Float64 = 1.0,
         threshold::Float64 = 95.0)
-    add_or_update_if_not_redundant!(legs::Vector{Leg}, leg::Leg; threshold = 95.0)
+    add_or_update_if_not_redundant!(legs::Vector{Leg}, leg::Leg; threshold = 85.0)
     ---> Vector{Leg}
 
 Adds a new Leg to a set-like vector of Legs. Uniqueness is influenced by `threshold`, see 
@@ -110,7 +110,7 @@ function add_or_update_if_not_redundant!(legs::Vector{Leg};
     leg = Leg(;    ABx, ABy, BAx, BAy, text_A, text_B, prominence_A, prominence_B)
     add_or_update_if_not_redundant!(legs, leg; threshold)
 end
-function add_or_update_if_not_redundant!(legs::Vector{Leg}, leg::Leg; threshold = 95.0)
+function add_or_update_if_not_redundant!(legs::Vector{Leg}, leg::Leg; threshold = 85.0)
     maybe_equal_indices = indices_of_intersecting_boundary_boxes(legs, leg)
     if isempty(maybe_equal_indices)
         # Nothing with similar boundingbox to leg in legs; add leg!
@@ -225,11 +225,12 @@ end
 
 
 """
-    are_paths_close((leg1, leg2; threshold = 95.0)
-    are_paths_close(vx, vy, wx, wy; threshold = 95.0)
+    are_paths_close((leg1, leg2; threshold = 85.0)
+    are_paths_close(vx, vy, wx, wy; threshold = 85.0)
     ---> Bool
 
-The default threshold corresponds to a very large roundabout.
+The default threshold is the maximum separating Volda / Nylenda from neighbour streets
+(UTM 33 E: 6922580, 38299).
 
 # Example
 ```
@@ -247,7 +248,7 @@ julia> julia> are_paths_close(vx, vy, wx, wy; threshold = 150)
 true
 ```
 """
-function are_paths_close(vx, vy, wx, wy; threshold = 95.0)
+function are_paths_close(vx, vy, wx, wy; threshold = 85.0)
     # It is hard to determine which path is the longest, since
     # density and shape can vary widely. So we check v ~> w, then v ~> w
     if are_all_points_of_path_v_close_to_path_w(vx, vy, wx, wy; threshold)
@@ -259,7 +260,7 @@ function are_paths_close(vx, vy, wx, wy; threshold = 95.0)
     false
 end
 
-function are_all_points_of_path_v_close_to_path_w(vx, vy, wx, wy; threshold = 95.0)
+function are_all_points_of_path_v_close_to_path_w(vx, vy, wx, wy; threshold = 85.0)
     # We need to check the distance from every point in v:
     v_iterator = zip(vx, vy)
     # If one path is roughly the reverse of the other, we would needlessly iterate 
@@ -288,8 +289,12 @@ function are_all_points_of_path_v_close_to_path_w(vx, vy, wx, wy; threshold = 95
 end
 
 
-are_paths_close(leg1, leg2; threshold = 95.0) = are_paths_close(leg1.ABx, leg1.ABy, leg2.ABx, leg2.ABy; threshold)
+are_paths_close(leg1, leg2; threshold = 85.0) = are_paths_close(leg1.ABx, leg1.ABy, leg2.ABx, leg2.ABy; threshold)
 
 distance(x1, y1, x2, y2) = sqrt((x1 - x2)^2 + (y1 - y2)^2)
 are_paths_most_likely_reversed(vx, vy, wx, wy) = distance(vx[1], vy[1], wx[1], wy[1]) > distance(vx[1], vy[1], wx[end], wy[end])
-are_paths_most_likely_reversed(leg1, leg2) = are_paths_most_likely_reversed(leg1.ABx, leg1.ABy, leg2.ABx, leg2.ABy) 
+are_paths_most_likely_reversed(leg1, leg2) = are_paths_most_likely_reversed(leg1.ABx, leg1.ABy, leg2.ABx, leg2.ABy)
+
+function LabelUTM(m::ModelSpace, l::LabelModelSpace)
+    LabelUTM(l.text, l.prominence, model_x_to_easting(m, l.x), model_y_to_northing(m, l.y))
+end

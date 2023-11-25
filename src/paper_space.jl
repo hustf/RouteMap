@@ -1,11 +1,17 @@
+"""
+    plot_prominent_labels_from_paper_space(; model_to_paper_scale, O_model_in_paper_space, 
+            model::ModelSpace, show_crash_boxes = false, plot_overlapping = false)
+
+This plots labels on the paper space overlay.
+"""
 function plot_prominent_labels_from_paper_space(; model_to_paper_scale, O_model_in_paper_space, 
-            model::ModelSpace, show_crash_boxes = false)
+            model::ModelSpace, show_crash_boxes = false, plot_overlapping = false)
     # This function is run in a separate thread, working on 'paper space',
     # and without affecting what's on the canvas (model space).
     text = map(l -> l.text, model.labels)
     prominence = map(l -> l.prominence, model.labels)
     pt_in_paper_space = map(model.labels) do l
-        O_model_in_paper_space + (l.x * model_to_paper_scale, - l.y *  model_to_paper_scale)
+        model_to_paper_space(O_model_in_paper_space, model_to_paper_scale, l.x, l.y)
     end
     # Since we're in paper space now, line thickness won't zoom away as much
     setline(0.5)
@@ -14,11 +20,16 @@ function plot_prominent_labels_from_paper_space(; model_to_paper_scale, O_model_
     # We define a three-variable plotting function by capturing model:
     f(label, pos, pri) = text_offset_dropshadow(label, pos, pri, model;
         posline = true)
-    selected_indexes, selected_padding_bounding_boxes = labels_prominent(f, text, pt_in_paper_space, prominence;
-        crashpadding = model.crashpadding, anchor = "left")
+    if plot_overlapping
+        plotted_indexes, plotted_padding_bounding_boxes = broadcast_all_labels_to_plotfunc(f, text, pt_in_paper_space, prominence;
+            crashpadding = model.crashpadding, anchor = "left")
+    else
+        plotted_indexes, plotted_padding_bounding_boxes = broadcast_prominent_labels_to_plotfunc(f, text, pt_in_paper_space, prominence;
+            crashpadding = model.crashpadding, anchor = "left")
+    end
     if show_crash_boxes
         # Mark anchor points and boundingboxes. Use when iterating for a size to display all labels. 
-        for (i, b) in zip(selected_indexes, selected_padding_bounding_boxes)
+        for (i, b) in zip(plotted_indexes, plotted_padding_bounding_boxes)
             circle(pt_in_paper_space[i], 1, :stroke)
             box(b, :stroke)
         end
@@ -26,8 +37,7 @@ function plot_prominent_labels_from_paper_space(; model_to_paper_scale, O_model_
 end
 
 """
-    snap_with_labels(m::ModelSpace; show_crash_boxes = false)
-    ---> Vector{Float64}
+    snap_with_labels(m::ModelSpace; show_crash_boxes = false, draw_grid = true, plot_overlapping = false)
 
 # Example, iterating to find a good plot size for a map.
 ```
@@ -40,14 +50,16 @@ end
 julia> snap_with_labels(model; show_crash_boxes = true)
 ```
 """
-function snap_with_labels(m::ModelSpace; show_crash_boxes = false) 
+function snap_with_labels(m::ModelSpace; show_crash_boxes = false, draw_grid = true, plot_overlapping = false)
+    draw_grid && draw_utm_grid(m)
     model_to_paper_scale = scale_limiting_get()
     O_model_in_paper_space = (O - midpoint(inkextent_user_with_margin())) * scale_limiting_get()
     snap(plot_prominent_labels_from_paper_space; 
         model = m,
         model_to_paper_scale,
         O_model_in_paper_space, 
-        show_crash_boxes)
+        show_crash_boxes,
+        plot_overlapping)
 end
 
 
