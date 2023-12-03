@@ -1,12 +1,12 @@
-include("t_world_space.jl")
+# Run this after t_world_space.jl
 @test length(legs) == 1
 m = model_activate(;countimage_startvalue = 9)
-plot_leg_in_model_space(m, legs[1])
+plot_legs_in_model_space(m, legs) 
 # First, we ignore any labels and such.
+# 10.svg has only the road and two stops circles:
 RouteMap.snap()
-# But here we go:
+# But here we go, 11.svg has default labels
 snap_with_labels(m)
-
 
 # Test identical labels won't be duplicated in the model.
 legs = Leg[]
@@ -21,4 +21,6 @@ add_or_update_if_not_redundant!(legs;    ABx = A2B2x,
 m = model_activate(;countimage_startvalue = 10)
 plot_legs_in_model_space(m, legs)
 @test length(m.labels) == 3
+# 12.svg has three labels and two legs:
 snap_with_labels(m)
+

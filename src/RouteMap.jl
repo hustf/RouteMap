@@ -41,6 +41,20 @@ struct LabelModelSpace <: Label
     x::Float64           # "Model space".
     y::Float64           # y points down, opposite of northing.
 end
+
+@kwdef mutable struct LabelPaperSpace
+    text::String = "Label\ntext"
+    prominence::Float64 = 1.0
+    x::Float64 = 0.0
+    y::Float64 = 0.0
+    halign::Symbol = :left
+    offset::Point = Point(-39.0, 52.0)
+    fontsize_prominence_1::Float64 = 22.0
+    offsetbelow::Bool = true
+    shadowcolor::Luxor.Colorant = Luxor.RGB{Float64}(0.342992,0.650614,0.772702)
+    textcolor::Luxor.Colorant = Luxor.RGB{Float64}(0.347677,0.199863,0.085069)
+    leaderline::Bool = true
+end
 # The input geometry format is 'multi_linestring', kept from data source.
 # Those are nested in segments, which are closed intervals: Ends within a leg
 # repeats border points. Drop the 'segments' division by calling

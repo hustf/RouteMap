@@ -17,7 +17,12 @@ model_y_to_northing(model::ModelSpace, y) = model_y_to_northing(model.world_to_m
 model_y_to_northing(model::ModelSpace, vy::Vector) = map(y -> model_y_to_northing(model, y), vy)
 model_y_to_northing(world_to_model_scale, world_units_originN, my) = -my * world_to_model_scale + world_units_originN
 
-model_to_paper_space(O_model_in_paper_space::Point, model_to_paper_scale, x, y) = O_model_in_paper_space + (x * model_to_paper_scale, y *  model_to_paper_scale)
+model_x_to_paper_x(Ox_model_in_paper_space, model_to_paper_scale, x) = Ox_model_in_paper_space + (x * model_to_paper_scale)
+model_y_to_paper_y(Oy_model_in_paper_space, model_to_paper_scale, y) = Oy_model_in_paper_space + (y * model_to_paper_scale)
+
+paper_x_to_model_x(Ox_model_in_paper_space, model_to_paper_scale, paper_x) = (paper_x - Ox_model_in_paper_space) / model_to_paper_scale
+paper_y_to_model_y(Oy_model_in_paper_space, model_to_paper_scale, paper_y) = (paper_y - Oy_model_in_paper_space) / model_to_paper_scale
+
 
 """
     find_boolean_step_using_interval_halving(step_func::Function, lower, upper, iterations; tol = 0.001)
@@ -56,4 +61,38 @@ function find_boolean_step_using_interval_halving(step_func::Function, lower, up
         # Recurse into upper half
         return find_boolean_step_using_interval_halving(step_func, mid, upper, iterations - 1)
     end
+end
+
+
+"""
+    wrap_to_two_words_per_line(text::String)
+    ---> String
+
+# Example
+```
+julia> RouteMap.wrap_to_two_words_per_line("Un dau tri, pedwar\n pump") |> println
+Un dau
+tri, pedwar
+pump
+
+julia> RouteMap.wrap_to_two_words_per_line("Un\n dau tri, pedwar pump") |> println
+Un dau
+tri, pedwar
+pump
+```
+"""
+function wrap_to_two_words_per_line(text::String)
+    words = split(text)
+    wrapped_text = ""
+    for i in 1:length(words)
+        wrapped_text *= words[i]
+        if i < length(words)
+            if i % 2 == 0
+                wrapped_text *= "\n"
+            else
+                wrapped_text *= " "
+            end
+        end
+    end
+    return wrapped_text
 end

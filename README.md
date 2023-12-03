@@ -85,7 +85,8 @@ This creates imgage files '10.png' and '10.svg'. The png is displayed depending 
 Fitting many readable labels onto the available paper is challenging, and we plan to expand the options here. 
 
 So far, overlapping labels are simply not shown by default. See `snap_with_labels` keywords.
-
+(Version 0.0.4 contains the type LabelPaperSpace, which we plan to move to LuxorLabels. Not showing overlapping labels
+currently don't fully work.)
 
 Functions for optimizations by now include
 

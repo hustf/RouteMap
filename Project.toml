@@ -1,7 +1,7 @@
 name = "RouteMap"
 uuid = "d7e0e77e-ebb7-4d52-98f7-0a2e09d5d09a"
 authors = ["hustf <hustf@users.noreply.github.com> and contributors"]
-version = "0.0.3"
+version = "0.0.4"
 
 [deps]
 ColorSchemes = "35d6a980-a343-548e-a6ea-1d62b119f2f4"

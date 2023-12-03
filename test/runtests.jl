@@ -1,5 +1,10 @@
 include("t_world_space.jl")
 include("t_draw.jl")
+include("t_plot_labels.jl")
+
+
+#=
+# This is a basic experiment for drawing to svg.
 # Time to draw a little.
 # Experiment.
 using Luxor, LuxorLayout
@@ -15,10 +20,8 @@ w = map(xy -> Point(xy[1], xy[2]), zip(wx, wy))
 encompass(v)
 encompass(w)
 setcolor("red")
-
-
-
 RouteMap.poly_with_discontinuities([v, w], action=:stroke)
 line(v[1], w[1], :stroke)
 rect(v[1].x, v[1].y, 40, 20, :fill)
 snap()
+=#
