@@ -17,25 +17,26 @@ model_y_to_northing(model::ModelSpace, y) = model_y_to_northing(model.world_to_m
 model_y_to_northing(model::ModelSpace, vy::Vector) = map(y -> model_y_to_northing(model, y), vy)
 model_y_to_northing(world_to_model_scale, world_units_originN, my) = -my * world_to_model_scale + world_units_originN
 
-model_x_to_paper_x(Ox_model_in_paper_space, model_to_paper_scale, x) = Ox_model_in_paper_space + (x * model_to_paper_scale)
-model_y_to_paper_y(Oy_model_in_paper_space, model_to_paper_scale, y) = Oy_model_in_paper_space + (y * model_to_paper_scale)
-
-paper_x_to_model_x(Ox_model_in_paper_space, model_to_paper_scale, paper_x) = (paper_x - Ox_model_in_paper_space) / model_to_paper_scale
-paper_y_to_model_y(Oy_model_in_paper_space, model_to_paper_scale, paper_y) = (paper_y - Oy_model_in_paper_space) / model_to_paper_scale
-
 
 """
+    find_boolean_step_using_interval_halving(step_func::Function, lower, upper; iterations = 20, tol = 0.001)
     find_boolean_step_using_interval_halving(step_func::Function, lower, upper, iterations; tol = 0.001)
-    ---> typeof(lower)
+    ---> x::typeof(lower)
+
+Find the minimum x that returns 'true'. 
+
+`step_func(x)`       returns true 
+`step_func(x - tol)` returns false 
 
 Use this when iterating paper size (model parameters limting_height and limiting_width) to fit all labels.
+For a more general function, it might be better to return the unknown midpoint between `true` and `false` values.
  
 # Example
 ```
 julia> using Logging
 
 julia> with_logger(ConsoleLogger(stderr, Debug)) do
-    find_boolean_step_using_interval_halving(1.0, 10.0, 100) do x
+    find_boolean_step_using_interval_halving(1.0, 10.0) do x
         x >= π
     end
 end
@@ -51,8 +52,8 @@ function find_boolean_step_using_interval_halving(step_func::Function, lower, up
         return NaN
     end
     if (upper - lower) < tol
-        @debug "Found root of step_func with $iterations unused iterations"
-        return mid
+        @debug "Found root of step_func with $iterations unused iterations. tol = $tol"
+        return upper
     end
     if step_func(mid)
         # Recurse into lower half
@@ -62,37 +63,14 @@ function find_boolean_step_using_interval_halving(step_func::Function, lower, up
         return find_boolean_step_using_interval_halving(step_func, mid, upper, iterations - 1)
     end
 end
-
-
-"""
-    wrap_to_two_words_per_line(text::String)
-    ---> String
-
-# Example
-```
-julia> RouteMap.wrap_to_two_words_per_line("Un dau tri, pedwar\n pump") |> println
-Un dau
-tri, pedwar
-pump
-
-julia> RouteMap.wrap_to_two_words_per_line("Un\n dau tri, pedwar pump") |> println
-Un dau
-tri, pedwar
-pump
-```
-"""
-function wrap_to_two_words_per_line(text::String)
-    words = split(text)
-    wrapped_text = ""
-    for i in 1:length(words)
-        wrapped_text *= words[i]
-        if i < length(words)
-            if i % 2 == 0
-                wrapped_text *= "\n"
-            else
-                wrapped_text *= " "
-            end
-        end
+function find_boolean_step_using_interval_halving(step_func::Function, lower, upper; iterations = 20, tol = 0.001)
+    mid = (lower + upper) / 2
+    @assert iterations > 1
+    # Call the recursive method.
+    x = find_boolean_step_using_interval_halving(step_func, lower, mid, iterations; tol)
+    if isnan(x)
+        @debug "Could not find boolean step in iterations = $iterations. `Consider parameters for find_boolean_step_using_interval_halving`"
     end
-    return wrapped_text
+    x
 end
+

@@ -1,7 +1,11 @@
-# Run this after t_world_space.jl
+# Uses some definitions from 't_world_space.jl'
+# Tests of output with a single leg and simple config.
+# Label offset optimization is not a relevant point in 
+# this example.
+@assert @isdefined(legs) "Run this after t_world_space.jl"
 @test length(legs) == 1
 m = model_activate(;countimage_startvalue = 9)
-plot_legs_in_model_space(m, legs) 
+plot_legs_in_model_space_and_collect_labels_in_model(m, legs)
 # First, we ignore any labels and such.
 # 10.svg has only the road and two stops circles:
 RouteMap.snap()
@@ -18,8 +22,8 @@ add_or_update_if_not_redundant!(legs;    ABx = A2B2x,
     ABy = A2B2y, 
     text_A = label_A2.text, 
     text_B = label_B2.text)
-m = model_activate(;countimage_startvalue = 10)
-plot_legs_in_model_space(m, legs)
+m = model_activate(;countimage_startvalue = 11)
+plot_legs_in_model_space_and_collect_labels_in_model(m, legs)
 @test length(m.labels) == 3
 # 12.svg has three labels and two legs:
 snap_with_labels(m)

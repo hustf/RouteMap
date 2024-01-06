@@ -1,4 +1,4 @@
-function plot_legs_in_model_space(m::ModelSpace, legs::Vector{Leg}; 
+function plot_legs_in_model_space_and_collect_labels_in_model(m::ModelSpace, legs::Vector{Leg}; 
         limiting_utm_bb::BoundingBox = BoundingBox(O - Inf, O + Inf))
     for leg in legs
         # Does all or part of leg fall within the limiting boundary box?
@@ -13,7 +13,7 @@ end
 """
     plot_leg_in_model_space(m::ModelSpace, l::Leg)
 
-Plot the leg line, and update the collection of labels in 'model'.
+Plot the leg path, and update the collection of labels in 'model'.
 If this is the first leg to be plotted, centers 'inkextent' around it.
 Otherwise, extends 'inkextent' to encompass this leg, too.
 
@@ -172,8 +172,8 @@ See ModelSpace for details.
     foreground
     FS
     EM 
-    limiting_height
-    limiting_width
+    limiting_height    In this context, paper width in pt (landscape mode).
+    limiting_width     In this context, paper height in pt (landscape mode).
     margin
     crashpadding
     marker_color
@@ -182,14 +182,18 @@ See ModelSpace for details.
 function model_activate(m::ModelSpace)
     LuxorLayout.LIMITING_WIDTH[] = m.limiting_width
     LuxorLayout.LIMITING_HEIGHT[] = m.limiting_height
+    ma = m.margin
+    margin_set(Margin(ma.t, ma.b, ma.l, ma.r))
+    # Set model space ink extents identical to
+    # paper space extents minus margins. 
+    # This could be though of as setting 'model_to_paper_scale = 1'.
+    inkextent_reset() 
+    # Make a new Luxor drawing ('model space')
     Drawing(NaN, NaN, :rec)
-    countimage_setvalue(m.countimage_startvalue)
-    inkextent_reset()
     background(m.background)
     setcolor(m.foreground)
     fontsize(m.FS)
-    ma = m.margin
-    margin_set(Margin(ma.t, ma.b, ma.l, ma.r))
+    countimage_setvalue(m.countimage_startvalue)
     m
 end
 function model_activate(;kw...)

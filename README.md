@@ -73,7 +73,7 @@ RouteMap.ModelSpace(    countimage_startvalue  = 9,
         utm_grid_size          = 1000,
         utm_grid_thickness     = 0.5)
 
-julia> plot_legs_in_model_space(model, legs) # This plots the path geometry and updates model's `label` collection
+julia> plot_legs_in_model_space_and_collect_labels_in_model(model, legs) # This plots the path geometry and updates model's `label` collection
 
 julia> snap_with_labels(model)
 ```

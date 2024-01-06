@@ -1,7 +1,7 @@
 module RouteMap
 
 export Leg, add_or_update_if_not_redundant!, LabelUTM, LabelModelSpace
-export model_activate, plot_leg_in_model_space, plot_legs_in_model_space, snap_with_labels
+export model_activate, plot_leg_in_model_space, plot_legs_in_model_space_and_collect_labels_in_model, snap_with_labels
 export easting_to_model_x, northing_to_model_y, model_x_to_easting, model_y_to_northing
 export draw_utm_grid, find_boolean_step_using_interval_halving
 using LuxorLayout, LuxorLabels, ColorSchemes
@@ -12,7 +12,7 @@ using Luxor: sethue, get_current_color, poly, Point, setcolor, fontsize
 using Luxor: @layer, O, textextents, setopacity, text, setdash, line, circle
 using Luxor: midpoint, box, boundingboxesintersect
 using Luxor: newpath, do_action
-import Base: show, convert
+import Base: show
 import Base.Iterators
 
 "An alias. A conversion of a 'multi_linestring' to numeric nested 3D"
@@ -42,19 +42,6 @@ struct LabelModelSpace <: Label
     y::Float64           # y points down, opposite of northing.
 end
 
-@kwdef mutable struct LabelPaperSpace
-    text::String = "Label\ntext"
-    prominence::Float64 = 1.0
-    x::Float64 = 0.0
-    y::Float64 = 0.0
-    halign::Symbol = :left
-    offset::Point = Point(-39.0, 52.0)
-    fontsize_prominence_1::Float64 = 22.0
-    offsetbelow::Bool = true
-    shadowcolor::Luxor.Colorant = Luxor.RGB{Float64}(0.342992,0.650614,0.772702)
-    textcolor::Luxor.Colorant = Luxor.RGB{Float64}(0.347677,0.199863,0.085069)
-    leaderline::Bool = true
-end
 # The input geometry format is 'multi_linestring', kept from data source.
 # Those are nested in segments, which are closed intervals: Ends within a leg
 # repeats border points. Drop the 'segments' division by calling
