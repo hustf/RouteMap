@@ -11,12 +11,6 @@
     --> png image for display. Outputs and svg and a png file. Using `LuxorLayout.snap`
 
 See `LabelPaperSpace` regarding keywords, for example by modifiying `offset` values.
-
-# Example, iterating to find a good plot size for a map.
-```
-```
-
-
 """
 function snap_with_labels(m::ModelSpace; 
         plot_guides = false, 
@@ -55,9 +49,11 @@ function snap_with_labels(m::ModelSpace;
         if length(dropped_indexes) > 0
             @info "LuxorLabels drops $(length(dropped_indexes)) labels: $msg"
         end
-        # Define a function that is executed on another thread, 
+        # Define an argument-less function (everything is captured) 
+        # that is executed on another thread, 
         # in the context of an svg overlay picture, then on a png overlay picture.
-        f = () -> label_all_at_given_offset(;labels = collect(labels_ps[prioritized_indexes]), plot_guides)
+        labels = collect(labels_ps[prioritized_indexes])
+        f = () -> label_all_at_given_offset(;labels, plot_guides)
     end
     snap(f)
 end
@@ -119,8 +115,9 @@ function labels_paper_space_from_labels_and_keywords(ms_labels::Vector{LabelMode
    # Extract parameters from model space labels
    txt = map(l -> l.text, ms_labels)
    prominence = map(l -> l.prominence, ms_labels)
-   x = map(l -> l.x * model_to_paper_scale - O_model_in_paper_space.x, ms_labels)
-   y = map(l -> l.y * model_to_paper_scale - O_model_in_paper_space.y, ms_labels)
+   x = map(l -> O_model_in_paper_space.x + l.x * model_to_paper_scale, ms_labels)
+   y = map(l -> O_model_in_paper_space.y + l.y * model_to_paper_scale, ms_labels)
+
    # Add keyword details to produce the more detailed PaperSpace labels.
    LuxorLabels.labels_paper_space(;txt, prominence, x, y, kwds...)
 end
