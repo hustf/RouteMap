@@ -101,7 +101,7 @@ end
     # The main function is to limit spill-over from labels at the end of routes.
     margin::NamedTuple{(:t, :b, :l, :r), NTuple{4, Int64}} = (t = 54, b = 81, l = 72, r = 72)
     marker_color::Colorant = foreground
-    labels::Vector{LabelModelSpace} = LabelModelSpace[]
+    labels::Vector{LabelUTM} = LabelModelSpace[]
     utm_grid_size::Int64 = 1000
     utm_grid_thickness::Float64 = 0.5
 end

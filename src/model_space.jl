@@ -45,17 +45,23 @@ function plot_leg_in_model_space(m::ModelSpace, l::Leg)
     end
     # expand ink extents
     encompass.(leg_pts_nested)
-    # Map labels to the models' collection, avoiding duplicate labels.
-    # Depending on zoom etc, some of those labels may not be displayed always.
-    # Labels are always drawn in paper space.
-    lbma = LabelModelSpace(m, l.label_A)
-    lbmb = LabelModelSpace(m, l.label_B)
-    update_labels_and_plot_small_circle!(m, lbma)
-    update_labels_and_plot_small_circle!(m, lbmb)
+    # Store the labels in model. They are not currently transformed to model space,
+    # because we want to keep the UTM coordinates for filtering and feedback.
+    update_labels_and_plot_small_circle!(m, l.label_A)
+    update_labels_and_plot_small_circle!(m, l.label_B)
     nothing
 end
 
-function update_labels_and_plot_small_circle!(m::ModelSpace, lab::LabelModelSpace; closest_identical_labels_distance_ws = 200)
+"""
+    update_labels_and_plot_small_circle!(m::ModelSpace, lab::LabelUTM; closest_identical_labels_distance_ws = 200)
+    ---> ::ModelSpace
+
+This adds a label to the collection in legs, while avoiding duplicate labels and close-duplicates.
+If merged with another label, the highest prominence (high = low value!) is kept.
+
+closest_identical_labels_distance_ws is the minimum world space distance between two labels.
+"""
+function update_labels_and_plot_small_circle!(m::ModelSpace, lab::LabelUTM; closest_identical_labels_distance_ws = 200)
     @assert eltype(m.labels) == typeof(lab)
     xx = lab.x
     yy = lab.y
@@ -65,7 +71,7 @@ function update_labels_and_plot_small_circle!(m::ModelSpace, lab::LabelModelSpac
     # we still do not want to unnecessarily add labels which are already present.
     # Therefore, we'll drop adding the label 'lab' to the model's collection of 
     # lables if it's within 200 m from a collected label with the same text.
-    closest_identical_labels_distance = closest_identical_labels_distance_ws / m.world_to_model_scale
+    closest_identical_labels_distance = closest_identical_labels_distance_ws
     i_matching_x = findall(m.labels) do l 
         abs(l.x - xx) <= closest_identical_labels_distance && l.text == txt
     end
@@ -89,6 +95,7 @@ function update_labels_and_plot_small_circle!(m::ModelSpace, lab::LabelModelSpac
     return m
 end
 
+
 function add_label_to_collection_and_plot_small_circle!(m, lab; closest_labels_distance = 1.0 / m.world_to_model_scale)
     i_xy = findall(m.labels) do l 
         abs(l.x - lab.x) <= closest_labels_distance && abs(l.y - lab.y) <= closest_labels_distance
@@ -99,7 +106,9 @@ function add_label_to_collection_and_plot_small_circle!(m, lab; closest_labels_d
         throw("The position ($(round(labcoll.x)), $(round(labcoll.y))) is already occupied by a label '$(labcoll.text)'. 
             Can't add '$(lab.text)' at position ($(round(lab.x)), $(round(lab.y)))!")
     end
-    draw_small_circle(m, Point(lab.x, lab.y))
+    modx = easting_to_model_x(m, lab.x) 
+    mody = northing_to_model_y(m, lab.y)
+    draw_small_circle(m, Point(modx, mody))
     push!(m.labels, lab)
     return m
 end

@@ -52,6 +52,7 @@ Leg with  AB <=> BA:
 
 ### Example, plotting a default map
 
+Note, slighly outdated. Fields are slightly changed.
 ```
 julia> model_activate()
 RouteMap.ModelSpace(    countimage_startvalue  = 9, 
@@ -69,7 +70,7 @@ RouteMap.ModelSpace(    countimage_startvalue  = 9,
         margin                 = (t = 54, b = 81, l = 72, r = 72), 
         crashpadding           = 2.14,
         marker_color           = RGB{Float64}(0.347677,0.199863,0.085069),
-        labels                 = LabelModelSpace[], 
+        labels                 = LabelUTM[], 
         utm_grid_size          = 1000,
         utm_grid_thickness     = 0.5)
 
@@ -90,22 +91,4 @@ currently don't fully work.)
 
 Functions for optimizations by now include
 
-`find_boolean_step_using_interval_halving`
-
-This is used with user-defined functions like
-
-```
-function non_overlapping_labels_data_from_captured_model(model_to_paper_scale)
-    # We take the labels from the model object here, but we could have taken it from 'legs'.
-    txtlabels = map(l -> l.text, model.labels)
-    prominence = map(l -> l.prominence, model.labels)
-    anchors = map(l -> Point(l.x, l.y), model.labels)
-    non_overlapping_labels_data(txtlabels, anchors / model_to_paper_scale, prominence)
-end
-
-function would_any_labels_be_discarded_from_overlap(model_to_paper_scale)
-    txtlabels = map(l -> l.text, model.labels)
-    it, _, _, _, _ = non_overlapping_labels_data_from_captured_model(model_to_paper_scale)
-    length(it) !== length(txtlabels)
-end
-```
+`minimum_model_to_paper_scale_for_non_overlapping_labels`.

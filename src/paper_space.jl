@@ -84,10 +84,15 @@ function labels_paper_space_from_model_and_keywords(m::ModelSpace;
     # with anchor point in the margins (as in inkextent_user_with_margin())
     # TODO: Adapt this later for a crop box?
     visible_labels = filter(m.labels) do l
-        Point(l.x, l.y) ∈ inkextent_user_get()
+        modx = easting_to_model_x(m, l.x) 
+        mody = northing_to_model_y(m, l.y)
+        Point(modx, mody) ∈ inkextent_user_get()
     end
-    # Extract further paper label details from model settings.
-    labels_paper_space_from_labels_and_keywords(visible_labels; 
+    # Convert to LabelModelSpace
+    ms_visible_labels = map(lws -> LabelModelSpace(m, lws), visible_labels)
+    # Extract further paper label details from model settings in
+    # call statement.
+    labels_paper_space_from_labels_and_keywords(ms_visible_labels; 
         fontsize_prominence_1 = m.FS, 
         shadowcolor = m.colorscheme[9], 
         textcolor = m.colorscheme[1],
