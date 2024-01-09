@@ -2,8 +2,8 @@ module RouteMap
 
 export Leg, add_or_update_if_not_redundant!, LabelUTM, LabelModelSpace
 export model_activate, plot_leg_in_model_space, plot_legs_in_model_space_and_collect_labels_in_model, snap_with_labels
+export draw_utm_grid, minimum_model_to_paper_scale_for_non_overlapping_labels
 export easting_to_model_x, northing_to_model_y, model_x_to_easting, model_y_to_northing
-export draw_utm_grid, find_boolean_step_using_interval_halving
 using LuxorLayout, LuxorLabels, ColorSchemes
 using ColorSchemes: Colorant
 import Luxor
@@ -73,7 +73,8 @@ struct Leg
     BAy::Vector{Float64}
 end
 
-# TODO: Consider storing labels as LabelUTM
+# TODO: Store labels as LabelUTM, which makes it easier
+#       to refer labels to a map.
 @kwdef struct ModelSpace
     # Start at 9 leads to first file at 10.
     # Thus, following snapshot will be sorted well in file explorer.
@@ -89,13 +90,16 @@ end
     FS = 22
     # The unit EM, as in .css, corresponds to text + margins above and below
     EM = Int(round(FS * 1.16))
-    limiting_height::Int64 = 1344
-    limiting_width::Int64 = 1792
+    # The paper size default is meant to be printed on A4 portrait.
+    # The PostScript standard is 72 pts/inch to cover A4 outside size of 210mm x 297mm
+    # There is some approximation in the standard due to 'gutter' margins.
+    # 72 dpi is not good enough, but we make vector graphics here, which can
+    # be resampled to a bitmap picture of arbitrary resolution (minimum 300 dots per inch?)
+    limiting_height::Ref{Int64} = 595
+    limiting_width::Ref{Int64} = 842
+    # Margins are relevant to 'outside margins' if we make maps covering several pages.
+    # The main function is to limit spill-over from labels at the end of routes.
     margin::NamedTuple{(:t, :b, :l, :r), NTuple{4, Int64}} = (t = 54, b = 81, l = 72, r = 72)
-    # LuxorLabels finds the boundingboxes for labels, but isn't properly aware of the current font size.
-    # We adjusted this value by feedback from removing comment in `plot_prominent_labels_from_paper_space`
-    # We could also adjust the value by prominence, but don't find that necessary.
-    crashpadding::Float64 = 2.14
     marker_color::Colorant = foreground
     labels::Vector{LabelModelSpace} = LabelModelSpace[]
     utm_grid_size::Int64 = 1000

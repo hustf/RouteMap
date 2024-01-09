@@ -28,3 +28,4 @@ plot_legs_in_model_space_and_collect_labels_in_model(m, legs)
 # 12.svg has three labels and two legs:
 snap_with_labels(m)
 
+# TODO: Add asymmmetric large margins plot. Update drawing numbers in following tests.

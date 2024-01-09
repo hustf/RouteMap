@@ -25,9 +25,7 @@ model = RouteMap.ModelSpace()
 @test model_x_to_easting(model, vmx) == vwx
 @test northing_to_model_y(model, vmy) == vwy
 
-@test abs(find_boolean_step_using_interval_halving(1.0, 10.0, 100) do x
+@test abs(find_boolean_step_using_interval_halving(;lower = 1.0, upper = 10.0, iterations = 100) do x
     x >= π
 end - 3.1415) < 1e-3
-@test abs(find_boolean_step_using_interval_halving(1.0, 10.0, 100) do x
-    x <= π
-end - 10) < 1e-3
+

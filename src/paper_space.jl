@@ -23,6 +23,9 @@ function snap_with_labels(m::ModelSpace;
         draw_grid = true, 
         plot_overlapping = false,
         kwds...)
+    # m.limiting... is mutable. Update LuxorLayout with the model's current values.
+    LIMITING_WIDTH[] = m.limiting_width[]
+    LIMITING_HEIGHT[] = m.limiting_height[]
     draw_grid && draw_utm_grid(m)
     if length(m.labels) == 0
         @info "No labels in model."
@@ -70,16 +73,22 @@ give keyword values as vectors.
 function labels_paper_space_from_model_and_keywords(m::ModelSpace; 
     kwds...)
     #
+    # m.limiting... is mutable. Update LuxorLayout with the model's current values.
+    LIMITING_WIDTH[] = m.limiting_width[]
+    LIMITING_HEIGHT[] = m.limiting_height[]
     if length(m.labels) == 0
         throw("No labels in model.")
     end
-    # These parameters are collected from the active drawing.
-    # They rely on something having been drawn already.
+    #
+    # These parameters are based on ink extents.
+    #
     model_to_paper_scale = scale_limiting_get()
-    model_bb = inkextent_user_with_margin()
-    # Filter labels within model_bb. Adapt this later for a crop box?
+    O_model_in_paper_space = user_origin_in_overlay_space_get()
+    # Filter labels within model_bb. We do not include labels
+    # with anchor point in the margins (as in inkextent_user_with_margin())
+    # TODO: Adapt this later for a crop box?
     visible_labels = filter(m.labels) do l
-        Point(l.x, l.y) ∈ model_bb
+        Point(l.x, l.y) ∈ inkextent_user_get()
     end
     # Extract further paper label details from model settings.
     labels_paper_space_from_labels_and_keywords(visible_labels; 
@@ -87,7 +96,7 @@ function labels_paper_space_from_model_and_keywords(m::ModelSpace;
         shadowcolor = m.colorscheme[9], 
         textcolor = m.colorscheme[1],
         model_to_paper_scale, 
-        O_model_in_paper_space = midpoint(O - model_bb) * model_to_paper_scale, 
+        O_model_in_paper_space, 
         kwds...)
 end
 

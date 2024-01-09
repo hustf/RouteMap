@@ -39,7 +39,10 @@ function plot_leg_in_model_space(m::ModelSpace, l::Leg)
     # Collect coordinates in paths
     leg_pts_nested = [Point.(abx, aby), Point.(bax, bay)]
     # Plot (both) paths in leg
-    poly_with_discontinuities(leg_pts_nested; action=:stroke)
+    @layer begin
+        setline(m.linewidth)
+        poly_with_discontinuities(leg_pts_nested; action=:stroke)
+    end
     # expand ink extents
     encompass.(leg_pts_nested)
     # Map labels to the models' collection, avoiding duplicate labels.
@@ -180,8 +183,8 @@ See ModelSpace for details.
     labels
 """
 function model_activate(m::ModelSpace)
-    LuxorLayout.LIMITING_WIDTH[] = m.limiting_width
-    LuxorLayout.LIMITING_HEIGHT[] = m.limiting_height
+    LuxorLayout.LIMITING_WIDTH[] = m.limiting_width[]
+    LuxorLayout.LIMITING_HEIGHT[] = m.limiting_height[]
     ma = m.margin
     margin_set(Margin(ma.t, ma.b, ma.l, ma.r))
     # Set model space ink extents identical to
