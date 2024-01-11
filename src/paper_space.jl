@@ -78,7 +78,7 @@ function labels_paper_space_from_model_and_keywords(m::ModelSpace;
     #
     # These parameters are based on ink extents.
     #
-    model_to_paper_scale = scale_limiting_get()
+    model_to_paper_scale = factor_user_to_overlay_get()
     O_model_in_paper_space = user_origin_in_overlay_space_get()
     # Filter labels within model_bb. We do not include labels
     # with anchor point in the margins (as in inkextent_user_with_margin())

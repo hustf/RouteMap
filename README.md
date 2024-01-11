@@ -91,4 +91,5 @@ currently don't fully work.)
 
 Functions for optimizations by now include
 
-`minimum_model_to_paper_scale_for_non_overlapping_labels`.
+- `minimum_model_to_paper_scale_for_non_overlapping_labels`.
+- `sort_by_vector!`

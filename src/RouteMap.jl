@@ -4,6 +4,7 @@ export Leg, add_or_update_if_not_redundant!, LabelUTM, LabelModelSpace
 export model_activate, plot_leg_in_model_space, plot_legs_in_model_space_and_collect_labels_in_model, snap_with_labels
 export draw_utm_grid, minimum_model_to_paper_scale_for_non_overlapping_labels
 export easting_to_model_x, northing_to_model_y, model_x_to_easting, model_y_to_northing
+export sort_by_vector!
 using LuxorLayout, LuxorLabels, ColorSchemes
 using ColorSchemes: Colorant
 import Luxor
@@ -21,8 +22,15 @@ const Mls = Vector{Vector{Tuple{Float64, Float64, Float64}}}
 
 abstract type Label end
 """
-Legs exist in the world space, UTM. We don't want
-its labels to depend on each model space.
+    LabelUTM(text, prominence, x, y)
+    LabelModelSpace(text, prominence, x, y)
+
+UTM is world space easting, northing UTM N coordinates.
+ModelSpace is possibly downscaled for smaller position numbers,
+since we can't draw on extremely large canvases.
+
+A label may not be have high enough prominence to be displayed.
+The check for that is done by mapping model to paper space.
 """
 struct LabelUTM <:Label
     text::String
@@ -30,11 +38,6 @@ struct LabelUTM <:Label
     x::Float64           # "World (UTM) space", easting
     y::Float64           # Northing
 end
-
-"""
-A label may not be have high enough prominence to be displayed.
-The check for that is done by mapping model to paper space.
-"""
 struct LabelModelSpace <: Label
     text::String
     prominence::Float64
@@ -73,8 +76,6 @@ struct Leg
     BAy::Vector{Float64}
 end
 
-# TODO: Store labels as LabelUTM, which makes it easier
-#       to refer labels to a map.
 @kwdef struct ModelSpace
     # Start at 9 leads to first file at 10.
     # Thus, following snapshot will be sorted well in file explorer.

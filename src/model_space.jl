@@ -96,7 +96,7 @@ function update_labels_and_plot_small_circle!(m::ModelSpace, lab::LabelUTM; clos
 end
 
 
-function add_label_to_collection_and_plot_small_circle!(m, lab; closest_labels_distance = 1.0 / m.world_to_model_scale)
+function add_label_to_collection_and_plot_small_circle!(m, lab; closest_labels_distance = 1.0 * m.world_to_model_scale)
     i_xy = findall(m.labels) do l 
         abs(l.x - lab.x) <= closest_labels_distance && abs(l.y - lab.y) <= closest_labels_distance
     end

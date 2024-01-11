@@ -17,12 +17,50 @@ model_y_to_northing(model::ModelSpace, y) = model_y_to_northing(model.world_to_m
 model_y_to_northing(model::ModelSpace, vy::Vector) = map(y -> model_y_to_northing(model, y), vy)
 model_y_to_northing(world_to_model_scale, world_units_originN, my) = -my * world_to_model_scale + world_units_originN
 
+#=
+TODO: We chose earlier that 'world_to_model_scale' = 1000
+is taken to mean 'world_to_model_scale_ratio` (that's how chatGPT interpreted it).
+So 1000m in the world would be 1m in the model.
+
+Now, this convention is really confusing. Maybe avoid the convention by talking about
+'world_to_model_factor'
+'model_to_paper_factor'
+=#
 
 """
     minimum_model_to_paper_scale_for_non_overlapping_labels(m::ModelSpace; 
     min_scale = 0.1, max_scale = 0.9, iterations = 20, tol = 0.001,
     kwds...)
     ---> x::typeof(lower)
+
+
+# Example
+
+Here, model `m` is predefined and populated with labels.
+'halign' and 'offset' are vectors with length corresponding to `m.labels`.
+ We can use the same keyword arguments as in `labels_paper_space_from_model_and_keywords`.
+
+```
+julia> # Try to shrink paper area needed for the big plot
+
+julia> m2ps = minimum_model_to_paper_scale_for_non_overlapping_labels(m; halign, offset, min_scale = 0.07, max_scale = 0.15)
+0.08546875000000001
+
+julia> # Resize the output from model accordingly.
+
+julia> m.limiting_width[] = round(boxwidth(model_bb * m2ps) + m.margin.r + m.margin.l)
+9532.0
+
+julia> m.limiting_height[] = round(boxheight(model_bb * m2ps) + m.margin.t + m.margin.b)
+6245.0
+
+julia> println("Output is A4 pages wide: ", ceil(m.limiting_width[] / 595), " at model_to_paper_scale = ", round(m2ps, digits = 5), "\n  and A4 pages high:", ceil(m.limiting_width[] / 895))
+Output is A4 pages wide: 17.0 at model_to_paper_scale = 0.08547
+  and A4 pages high:11.0
+
+julia> snap_with_labels(m)  # This is displayed depending on context.
+Cairo.CairoSurfaceBase{UInt32}(Ptr{Nothing} @0x0000022584cace20, 9415.0, 6245.0)
+```
 """
 function minimum_model_to_paper_scale_for_non_overlapping_labels(m::ModelSpace; 
     min_scale = 0.1, max_scale = 0.9, iterations = 20, tol = 0.001,
@@ -129,6 +167,16 @@ function find_boolean_step_using_interval_halving(step_func::Function; lower, up
     x = _find_boolean_step_using_interval_halving(step_func, lower, mid, iterations; tol)
     if isnan(x)
         @debug "Could not find boolean step in iterations = $iterations. `Consider parameters for find_boolean_step_using_interval_halving`"
+        return x
+    end
+    # Make sure we're not returning an x for which step_func was never evaluated.
+    # That would happen if all evaluations for x < upper returned false.
+    if x < upper
+        if step_func(x)
+            return x
+        else
+            return upper
+        end
     end
     x
 end
@@ -146,7 +194,7 @@ function _find_boolean_step_using_interval_halving(step_func::Function, lower, u
         return NaN
     end
     if (upper - lower) < tol
-        @debug "Found root of $step_func with $iterations unused iterations. tol = $tol"
+        @debug "Found root $round(upper, 5) of $step_func with $iterations unused iterations. tol = $tol"
         return upper
     end
     if step_func(mid)
@@ -158,4 +206,28 @@ function _find_boolean_step_using_interval_halving(step_func::Function, lower, u
         @debug "Recurse into upper half since mid = $mid |> $step_func --> false"
         return _find_boolean_step_using_interval_halving(step_func, mid, upper, iterations - 1)
     end
+end
+
+
+"""
+    sort_by_vector!(legs::Vector{Leg}, positive_easting, positive_northing)
+    sort_by_vector!(labels::Vector{T}, positive_easting, positive_northing) where T<:RouteMap.Label
+    ---> Vector of Leg or Label
+
+In-place sorting along the direction defined by [positive_easting, positive_northing].
+"""
+function sort_by_vector!(legs::Vector{Leg}, positive_easting, positive_northing)
+    function position_projected_on_vector(leg)
+        bb = leg.bb_utm
+        east, nort = midpoint(bb)
+        east * positive_easting + nort * positive_northing
+    end
+    sort!(legs, by = position_projected_on_vector)
+end
+function sort_by_vector!(labels::Vector{T}, positive_easting, positive_northing) where T<:RouteMap.Label
+    function position_projected_on_vector(label)
+        east, nort = label.x, label.y
+        east * positive_easting + nort * positive_northing
+    end
+    sort!(labels, by = position_projected_on_vector)
 end
