@@ -21,7 +21,7 @@ function draw_utm_grid(m::ModelSpace, easting_min, northing_max, easting_max, no
     ym0 = northing_to_model_y(m, y0)
     xm1 = easting_to_model_x(m, x1)
     ym1 = northing_to_model_y(m, y1)
-    grid_size_model = utm_grid_size /  m.world_to_model_scale
+    grid_size_model = utm_grid_size /  m.world_to_model_factor
     # Note that utm_grid_thickness does not change with model scale.
     draw_model_grid(xm0, ym0, xm1, ym1, grid_size_model, m.utm_grid_thickness)
 end

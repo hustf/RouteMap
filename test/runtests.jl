@@ -3,14 +3,17 @@ function run_all_tests()
     @testset "1" begin
         include("t_world_space.jl")
     end
-    @testset "2" begin
+    @testset "2 Pic. 10-12" begin
         include("t_draw.jl")
     end
     @testset "3" begin
-        include("t_utils.jl")
+        include("t_transformations.jl")
     end
-    @testset "4" begin
-        include("t_fit_paper_to_labels.jl")
+    @testset "4 Pic. 14-22" begin
+        include("t_fit_to_given_paper.jl")
+    end
+    @testset "5" begin
+        include("t_adapt_paper_to_label_stacking.jl")
     end
 end
 

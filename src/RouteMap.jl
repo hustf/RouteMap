@@ -1,10 +1,15 @@
 module RouteMap
 
 export Leg, add_or_update_if_not_redundant!, LabelUTM, LabelModelSpace
-export model_activate, plot_leg_in_model_space, plot_legs_in_model_space_and_collect_labels_in_model, snap_with_labels
-export draw_utm_grid, minimum_model_to_paper_scale_for_non_overlapping_labels
-export easting_to_model_x, northing_to_model_y, model_x_to_easting, model_y_to_northing
+export snap, snap_with_labels
+export model_activate, plot_leg_in_model_space, plot_legs_in_model_space_and_collect_labels_in_model!
+export draw_utm_grid, draw_and_encompass_circle, minimum_model_to_paper_factor_for_non_overlapping_labels, encompass
 export sort_by_vector!
+# export transformations
+export easting_to_model_x, northing_to_model_y, model_x_to_easting, model_y_to_northing
+export paper_x_to_model_x, paper_y_to_model_y, model_x_to_paper_x, model_y_to_paper_y
+export world_to_model_factor, world_to_paper_factor, model_to_paper_factor
+
 using LuxorLayout, LuxorLabels, ColorSchemes
 using ColorSchemes: Colorant
 import Luxor
@@ -81,7 +86,7 @@ end
     # Thus, following snapshot will be sorted well in file explorer.
     countimage_startvalue::Int64 = 9
     colorscheme::ColorScheme = ColorSchemes.browncyan
-    world_to_model_scale::Float64 = 1.0
+    world_to_model_factor::Float64 = 1.0
     originE::Int64 = 26561
     originN::Int64 = 6940224
     background::Colorant = colorscheme[5]
@@ -107,10 +112,11 @@ end
     utm_grid_thickness::Float64 = 0.5
 end
 
-include("utils.jl")
+include("transformations.jl")
 include("world_space.jl")
 include("model_space.jl")
 include("paper_space.jl")
 include("utm_grid.jl")
 include("io.jl")
+include("utils_paper_adaption.jl")
 end

@@ -1,4 +1,4 @@
-function plot_legs_in_model_space_and_collect_labels_in_model(m::ModelSpace, legs::Vector{Leg}; 
+function plot_legs_in_model_space_and_collect_labels_in_model!(m::ModelSpace, legs::Vector{Leg}; 
         limiting_utm_bb::BoundingBox = BoundingBox(O - Inf, O + Inf))
     for leg in legs
         # Does all or part of leg fall within the limiting boundary box?
@@ -8,6 +8,12 @@ function plot_legs_in_model_space_and_collect_labels_in_model(m::ModelSpace, leg
             @debug "Some Leg(s) were not plotted because it falls outside of the defined boundary." maxlog = 1
         end
     end
+    # We want to avoid world_to_paper_factor(m) > 1,
+    # because zooming in makes the circles and labels look silly.
+    if world_to_paper_factor(m) > 1
+        @warn "Currently, world_to_paper_factor(model) = $(round(world_to_paper_factor(m), digits = 4)) > 1. If intentional, plots may look bad."
+    end
+    m.labels
 end
 
 """
@@ -33,8 +39,8 @@ function plot_leg_in_model_space(m::ModelSpace, l::Leg)
         # This is the first leg we plot. 
         # Use the opportunity to set inkextent around this first leg.
         # ink extents will be expanded from this as we plot more.
-        pointA = Point(abx[1], aby[1])
-        inkextent_set(BoundingBox(pointA, pointA))
+        bbm = utm_to_model(m, l.bb_utm)
+        inkextent_set(bbm)
     end
     # Collect coordinates in paths
     leg_pts_nested = [Point.(abx, aby), Point.(bax, bay)]
@@ -96,7 +102,7 @@ function update_labels_and_plot_small_circle!(m::ModelSpace, lab::LabelUTM; clos
 end
 
 
-function add_label_to_collection_and_plot_small_circle!(m, lab; closest_labels_distance = 1.0 * m.world_to_model_scale)
+function add_label_to_collection_and_plot_small_circle!(m, lab; closest_labels_distance = 1.0 * m.world_to_model_factor)
     i_xy = findall(m.labels) do l 
         abs(l.x - lab.x) <= closest_labels_distance && abs(l.y - lab.y) <= closest_labels_distance
     end
@@ -108,24 +114,25 @@ function add_label_to_collection_and_plot_small_circle!(m, lab; closest_labels_d
     end
     modx = easting_to_model_x(m, lab.x) 
     mody = northing_to_model_y(m, lab.y)
-    draw_small_circle(m, Point(modx, mody))
+    draw_and_encompass_circle(m, Point(modx, mody))
     push!(m.labels, lab)
     return m
 end
 
 """
-    draw_small_circle(m::ModelSpace, pt)
-    draw_small_circle(pt::Point; r = m.FS / 2, marker_color = m.marker_color)
+    draw_and_encompass_circle(m::ModelSpace, pt)
+    draw_and_encompass_circle(pt::Point; r = m.FS / 2, marker_color = m.marker_color)
 
 Draws on the model space canvas, which is a global activated through `model_activate`.
 """
-draw_small_circle(m::ModelSpace, pt) = draw_small_circle(pt; r = m.FS / 2, marker_color = m.marker_color)
-function draw_small_circle(pt::Point; r = 11.0, marker_color = ColorSchemes.browncyan[1])
+draw_and_encompass_circle(m::ModelSpace, pt) = draw_and_encompass_circle(pt; r = m.FS / 2, marker_color = m.marker_color)
+function draw_and_encompass_circle(pt::Point; r = 11.0, marker_color = ColorSchemes.browncyan[1])
     @layer begin
         setcolor(marker_color)
         circle(pt, r, :stroke)
     end
     encompass(pt + r)
+    encompass(pt - r)
 end
 
 """
@@ -176,7 +183,7 @@ See ModelSpace for details.
 
     countimage_startvalue
     colorscheme
-    world_to_model_scale
+    world_to_model_factor
     originE
     originN
     background
@@ -192,15 +199,12 @@ See ModelSpace for details.
     labels
 """
 function model_activate(m::ModelSpace)
-    LuxorLayout.LIMITING_WIDTH[] = m.limiting_width[]
-    LuxorLayout.LIMITING_HEIGHT[] = m.limiting_height[]
-    ma = m.margin
-    margin_set(Margin(ma.t, ma.b, ma.l, ma.r))
+    update_layout(m)
     # Set model space ink extents identical to
     # paper space extents minus margins. 
-    # This could be though of as setting 'model_to_paper_scale = 1'.
+    # This is better thought of as setting 'model_to_paper_factor = 1'.
     inkextent_reset() 
-    # Make a new Luxor drawing ('model space')
+    # Make a new Luxor drawing (canvas corresponding to 'model space')
     Drawing(NaN, NaN, :rec)
     background(m.background)
     setcolor(m.foreground)

@@ -1,35 +1,8 @@
-# Helper functions that may be used from here or there
-
-# In the model, y is down, as in device space of Cairo / Luxor.
-easting_to_model_x(model::ModelSpace, easting) = easting_to_model_x(model.world_to_model_scale, model.originE, easting)
-easting_to_model_x(model::ModelSpace, easting::Vector) = map(x -> easting_to_model_x(model, x), easting)
-easting_to_model_x(world_to_model_scale, world_units_originE, wx) = (wx - world_units_originE) / world_to_model_scale
-
-northing_to_model_y(model::ModelSpace, northing) = northing_to_model_y(model.world_to_model_scale, model.originN, northing)
-northing_to_model_y(model::ModelSpace, northing::Vector) = map(y -> northing_to_model_y(model, y), northing)
-northing_to_model_y(world_to_model_scale, world_units_originN, wy) = -(wy - world_units_originN) / world_to_model_scale
-
-model_x_to_easting(model::ModelSpace, x) = model_x_to_easting(model.world_to_model_scale, model.originE, x)
-model_x_to_easting(model::ModelSpace, vx::Vector) = map(x -> model_x_to_easting(model, x), vx)
-model_x_to_easting(world_to_model_scale, world_units_originE, mx) = mx * world_to_model_scale + world_units_originE
-
-model_y_to_northing(model::ModelSpace, y) = model_y_to_northing(model.world_to_model_scale, model.originN, y)
-model_y_to_northing(model::ModelSpace, vy::Vector) = map(y -> model_y_to_northing(model, y), vy)
-model_y_to_northing(world_to_model_scale, world_units_originN, my) = -my * world_to_model_scale + world_units_originN
-
-#=
-TODO: We chose earlier that 'world_to_model_scale' = 1000
-is taken to mean 'world_to_model_scale_ratio` (that's how chatGPT interpreted it).
-So 1000m in the world would be 1m in the model.
-
-Now, this convention is really confusing. Maybe avoid the convention by talking about
-'world_to_model_factor'
-'model_to_paper_factor'
-=#
+# Utilties for fine-tuning map paper size and exact label fitting
 
 """
-    minimum_model_to_paper_scale_for_non_overlapping_labels(m::ModelSpace; 
-    min_scale = 0.1, max_scale = 0.9, iterations = 20, tol = 0.001,
+    minimum_model_to_paper_factor_for_non_overlapping_labels(m::ModelSpace; 
+    min_factor = 0.1, max_factor = 0.9, iterations = 20, tol = 0.001,
     kwds...)
     ---> x::typeof(lower)
 
@@ -43,7 +16,7 @@ Here, model `m` is predefined and populated with labels.
 ```
 julia> # Try to shrink paper area needed for the big plot
 
-julia> m2ps = minimum_model_to_paper_scale_for_non_overlapping_labels(m; halign, offset, min_scale = 0.07, max_scale = 0.15)
+julia> m2ps = minimum_model_to_paper_factor_for_non_overlapping_labels(m; halign, offset, min_factor = 0.07, max_factor = 0.15)
 0.08546875000000001
 
 julia> # Resize the output from model accordingly.
@@ -54,21 +27,19 @@ julia> m.limiting_width[] = round(boxwidth(model_bb * m2ps) + m.margin.r + m.mar
 julia> m.limiting_height[] = round(boxheight(model_bb * m2ps) + m.margin.t + m.margin.b)
 6245.0
 
-julia> println("Output is A4 pages wide: ", ceil(m.limiting_width[] / 595), " at model_to_paper_scale = ", round(m2ps, digits = 5), "\n  and A4 pages high:", ceil(m.limiting_width[] / 895))
-Output is A4 pages wide: 17.0 at model_to_paper_scale = 0.08547
+julia> println("Output is A4 pages wide: ", ceil(m.limiting_width[] / 595), " at model_to_paper_factor = ", round(m2ps, digits = 5), "\n  and A4 pages high:", ceil(m.limiting_width[] / 895))
+Output is A4 pages wide: 17.0 at model_to_paper_factor = 0.08547
   and A4 pages high:11.0
 
 julia> snap_with_labels(m)  # This is displayed depending on context.
 Cairo.CairoSurfaceBase{UInt32}(Ptr{Nothing} @0x0000022584cace20, 9415.0, 6245.0)
 ```
 """
-function minimum_model_to_paper_scale_for_non_overlapping_labels(m::ModelSpace; 
-    min_scale = 0.1, max_scale = 0.9, iterations = 20, tol = 0.001,
+function minimum_model_to_paper_factor_for_non_overlapping_labels(m::ModelSpace; 
+    min_factor = 0.1, max_factor = 0.9, iterations = 20, tol = 0.001,
     kwds...)
     #
-    # m.limiting... is mutable. Update LuxorLayout with the model's current values.
-    LIMITING_WIDTH[] = m.limiting_width[]
-    LIMITING_HEIGHT[] = m.limiting_height[]
+    update_layout(m)
     #
     if length(m.labels) == 0
         @info "No labels in model."
@@ -76,12 +47,12 @@ function minimum_model_to_paper_scale_for_non_overlapping_labels(m::ModelSpace;
     end
     model_bb = inkextent_user_get()
     # This single-parameter function captures all parameters in this context, 
-    # except the scale (which is to be the output from this context). 
-    function boolean_step(model_to_paper_scale)
+    # except the factor (which is to be the output from this context). 
+    function boolean_step(model_to_paper_factor)
         # The following is hardly always correct, but we can't see that it does matter here. TODO: Study this.
-        O_model_in_paper_space = midpoint(O - model_bb) * model_to_paper_scale
+        O_model_in_paper_space = midpoint(O - model_bb) * model_to_paper_factor
         labels_ps = labels_paper_space_from_model_and_keywords(m;
-            model_to_paper_scale,  O_model_in_paper_space, kwds...)
+            model_to_paper_factor,  O_model_in_paper_space, kwds...)
         # Now optimize the offset positions of paper space labels:
         LuxorLabels.optimize_offset_direction_diagonal!(labels_ps, plot_label_bounding_box)
         # 
@@ -93,16 +64,16 @@ function minimum_model_to_paper_scale_for_non_overlapping_labels(m::ModelSpace;
             msg = join([string(i) for i in dropped_indexes], ", " )
         end
         if length(dropped_indexes) > 0
-            @info "At model_to_paper_scale = $(round(model_to_paper_scale; digits = 4)), we would drop $(length(dropped_indexes)) labels: $msg"
+            @info "At model_to_paper_factor = $(round(model_to_paper_factor; digits = 4)), we would drop $(length(dropped_indexes)) labels: $msg"
         else
-            @info "All labels fit at model_to_paper_scale = $(round(model_to_paper_scale; digits = 4)). "
+            @info "All labels fit at model_to_paper_factor = $(round(model_to_paper_factor; digits = 4)). "
         end
         # Return true if no drop!
         length(prioritized_indexes) == length(labels_ps)
     end
     # Now find the step in `boolean_step` by iteration. Return the minimum such that:
-    # scale |> boolean_step --> true
-    find_boolean_step_using_interval_halving(boolean_step; lower = min_scale, upper = max_scale, iterations, tol)
+    # factor |> boolean_step --> true
+    find_boolean_step_using_interval_halving(boolean_step; lower = min_factor, upper = max_factor, iterations, tol)
 end
 
 
