@@ -1,15 +1,16 @@
 module RouteMap
 
 export Leg, add_or_update_if_not_redundant!, LabelUTM, LabelModelSpace
-export snap, snap_with_labels
-export model_activate, plot_leg_in_model_space, plot_legs_in_model_space_and_collect_labels_in_model!
+export snap, snap_with_labels, adapt_model_paper_size_and_snap!
+export model_activate, plot_leg_in_model_space, plot_legs_in_model_space_and_push_labels_to_model!
+export countimage_get, countimage_set
 export draw_utm_grid, draw_and_encompass_circle, minimum_model_to_paper_factor_for_non_overlapping_labels, encompass
 export sort_by_vector!
 # export transformations
 export easting_to_model_x, northing_to_model_y, model_x_to_easting, model_y_to_northing
 export paper_x_to_model_x, paper_y_to_model_y, model_x_to_paper_x, model_y_to_paper_y
 export world_to_model_factor, world_to_paper_factor, model_to_paper_factor
-
+export utm_to_model, paper_to_model
 using LuxorLayout, LuxorLabels, ColorSchemes
 using ColorSchemes: Colorant
 import Luxor
@@ -17,7 +18,7 @@ using Luxor: Drawing, background, setline, settext, BoundingBox
 using Luxor: sethue, get_current_color, poly, Point, setcolor, fontsize
 using Luxor: @layer, O, textextents, setopacity, text, setdash, line, circle
 using Luxor: midpoint, box, boundingboxesintersect
-using Luxor: newpath, do_action
+using Luxor: newpath, do_action, boxwidth, boxheight
 import Base: show
 import Base.Iterators
 
@@ -89,6 +90,7 @@ end
     world_to_model_factor::Float64 = 1.0
     originE::Int64 = 26561
     originN::Int64 = 6940224
+    # For reference, less pleasant on screen, better on print: Luxor.RGB(1.0, 1.0, 1.0)
     background::Colorant = colorscheme[5]
     linewidth::Float64 = 9.0
     foreground::Colorant = colorscheme[1]
@@ -101,12 +103,12 @@ end
     # There is some approximation in the standard due to 'gutter' margins.
     # 72 dpi is not good enough, but we make vector graphics here, which can
     # be resampled to a bitmap picture of arbitrary resolution (minimum 300 dots per inch?)
-    limiting_height::Ref{Int64} = 595
-    limiting_width::Ref{Int64} = 842
+    limiting_height::Ref{Int64} = 842
+    limiting_width::Ref{Int64} = 595
     # Margins are relevant to 'outside margins' if we make maps covering several pages.
     # The main function is to limit spill-over from labels at the end of routes.
-    margin::NamedTuple{(:t, :b, :l, :r), NTuple{4, Int64}} = (t = 54, b = 81, l = 72, r = 72)
-    marker_color::Colorant = foreground
+    # More typical A4 page margins, for reference: (t = 54, b = 81, l = 72, r = 72)
+    margin::NamedTuple{(:t, :b, :l, :r), NTuple{4, Int64}} = (t = 108, b=162, l=144, r=144)
     labels::Vector{LabelUTM} = LabelModelSpace[]
     utm_grid_size::Int64 = 1000
     utm_grid_thickness::Float64 = 0.5

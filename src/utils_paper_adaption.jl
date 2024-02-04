@@ -1,5 +1,23 @@
 # Utilties for fine-tuning map paper size and exact label fitting
 
+
+
+"""
+    adapt_model_paper_size_and_snap!(m::RouteMap.ModelSpace, model_to_paper_factor; kwds...)
+    --> png image for display. Outputs and svg and a png file. Using `LuxorLayout.snap`
+
+Also modifies `m` in-place. See `LabelPaperSpace` regarding keywords, like modifiying `offset` values.
+"""
+function adapt_model_paper_size_and_snap!(m::RouteMap.ModelSpace, model_to_paper_factor; kwds...)
+    model_bb = inkextent_user_get()
+    m.limiting_width[] = round(boxwidth(model_bb * model_to_paper_factor) + m.margin.r + m.margin.l)
+    m.limiting_height[] = round(boxheight(model_bb * model_to_paper_factor) + m.margin.t + m.margin.b)
+    println("A4 pages wide: ", ceil(m.limiting_width[] / 595), " at model_to_paper_factor = ", round(model_to_paper_factor, digits = 5), "\n   pages tall: ", ceil(m.limiting_width[] / 895))
+    snap_with_labels(m; kwds...)
+end
+
+
+
 """
     minimum_model_to_paper_factor_for_non_overlapping_labels(m::ModelSpace; 
     min_factor = 0.1, max_factor = 0.9, iterations = 20, tol = 0.001,
@@ -54,7 +72,7 @@ function minimum_model_to_paper_factor_for_non_overlapping_labels(m::ModelSpace;
         labels_ps = labels_paper_space_from_model_and_keywords(m;
             model_to_paper_factor,  O_model_in_paper_space, kwds...)
         # Now optimize the offset positions of paper space labels:
-        LuxorLabels.optimize_offset_direction_diagonal!(labels_ps, plot_label_bounding_box)
+        LuxorLabels.optimize_offset_direction_diagonal!(labels_ps, plot_label_return_bb)
         # 
         prioritized_indexes, boundary_boxes = indexes_and_bbs_prioritized_at_given_offset(;labels = labels_ps)
         dropped_indexes = setdiff(1:length(labels_ps), prioritized_indexes)
@@ -64,9 +82,9 @@ function minimum_model_to_paper_factor_for_non_overlapping_labels(m::ModelSpace;
             msg = join([string(i) for i in dropped_indexes], ", " )
         end
         if length(dropped_indexes) > 0
-            @info "At model_to_paper_factor = $(round(model_to_paper_factor; digits = 4)), we would drop $(length(dropped_indexes)) labels: $msg"
+            @info "At model_to_paper_factor = $(round(model_to_paper_factor; digits = 6)), we would drop $(length(dropped_indexes)) labels:\n$msg"
         else
-            @info "All labels fit at model_to_paper_factor = $(round(model_to_paper_factor; digits = 4)). "
+            @info "All labels fit at model_to_paper_factor = $(round(model_to_paper_factor; digits = 6)). " 
         end
         # Return true if no drop!
         length(prioritized_indexes) == length(labels_ps)
@@ -195,7 +213,7 @@ function sort_by_vector!(legs::Vector{Leg}, positive_easting, positive_northing)
     end
     sort!(legs, by = position_projected_on_vector)
 end
-function sort_by_vector!(labels::Vector{T}, positive_easting, positive_northing) where T<:RouteMap.Label
+function sort_by_vector!(labels::AbstractVector{T}, positive_easting, positive_northing) where T<:RouteMap.Label
     function position_projected_on_vector(label)
         east, nort = label.x, label.y
         east * positive_easting + nort * positive_northing

@@ -111,6 +111,10 @@ function add_or_update_if_not_redundant!(legs::Vector{Leg};
     add_or_update_if_not_redundant!(legs, leg; threshold)
 end
 function add_or_update_if_not_redundant!(legs::Vector{Leg}, leg::Leg; threshold = 85.0)
+    @debug "Considering to add leg to collection:  $(leg.label_A)  - $(leg.label_B)"
+    if leg.label_A.text == "Eiksund skule" && leg.label_B.text == "Havåg"
+        println("TODO Debug!")
+    end
     maybe_equal_indices = indices_of_intersecting_boundary_boxes(legs, leg)
     if isempty(maybe_equal_indices)
         # Nothing with similar boundingbox to leg in legs; add leg!
@@ -213,7 +217,7 @@ function label_in_close_proximity_to_keep(lab1::Label, lab2::Label)
         # Keep label 1
         if lab1.text !== lab2.text
             @warn "Keeping \"$(lab1.text)\", discarding \"$(lab2.text)\""
-            throw("Nah...|")
+            throw("Carefully consider lowering the proximimity threshold value instead of joining legs! Keyword 'threshold'")
         end
         lab1
     else 

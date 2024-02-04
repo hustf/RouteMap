@@ -89,6 +89,12 @@ function utm_to_model(m::ModelSpace, bb_utm::BoundingBox)
     BoundingBox(Point(xs[1], ys[1]), Point(xs[2], ys[2]))
 end
 
+function paper_to_model(m::ModelSpace, bb::BoundingBox)
+    xs = paper_x_to_model_x(m, [bb.corner1.x, bb.corner2.x])
+    ys = paper_y_to_model_y(m, [bb.corner1.y, bb.corner2.y])
+    BoundingBox(Point(xs[1], ys[1]), Point(xs[2], ys[2]))
+end
+
 """
     update_layout(model)    ---> Nothing
 

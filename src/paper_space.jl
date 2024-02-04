@@ -14,10 +14,17 @@ See `LabelPaperSpace` regarding keywords, for example by modifiying `offset` val
 """
 function snap_with_labels(m::ModelSpace; 
         plot_guides = false, 
-        draw_grid = true, 
+        draw_grid = false, 
         plot_overlapping = false,
         kwds...)
     update_layout(m)
+    # NOTE: This draws the grid in model space (if the keyword is set to true), 
+    # but it will lie above any graphics present in model space, 
+    # and remain there. Calling 'snap_with_labels'
+    # several times with keyword set will overlay several grids. It is preferrable to call 
+    # 'draw_utm_grid' in a separate call prior to drawing other graphics,
+    # but that requires setting LuxorLayout.inkextent manually by calling
+    # LuxorLayout.encompass(x)
     draw_grid && draw_utm_grid(m)
     if length(m.labels) == 0
         @info "No labels in model."
@@ -25,7 +32,7 @@ function snap_with_labels(m::ModelSpace;
     end
     labels_ps = labels_paper_space_from_model_and_keywords(m; kwds...)
     # Now optimize the offset positions of paper space labels:
-    LuxorLabels.optimize_offset_direction_diagonal!(labels_ps, plot_label_bounding_box)
+    LuxorLabels.optimize_offset_direction_diagonal!(labels_ps, plot_label_return_bb)
     if plot_overlapping
         # Define a function that is executed on another thread, 
         # in the context of an svg overlay picture, then on a png overlay picture.
@@ -71,7 +78,7 @@ function labels_paper_space_from_model_and_keywords(m::ModelSpace;
         throw("No labels in model.")
     end
     #
-    # Filter labels within model_bb. We do not include labels
+    # Filter labels that lie within model_bb. We do not include labels
     # with anchor point in the margins (as in inkextent_user_with_margin())
     # TODO: Adapt this later for a crop box?
     visible_labels = filter(m.labels) do l
@@ -111,8 +118,6 @@ function labels_paper_space_from_labels_and_keywords(ms_labels::Vector{LabelMode
    # Extract parameters from model space labels
    txt = map(l -> l.text, ms_labels)
    prominence = map(l -> l.prominence, ms_labels)
-   #vmx = map(l -> O_model_in_paper_space.x + l.x * model_to_paper_factor, ms_labels)
-   #vmy = map(l -> O_model_in_paper_space.y + l.y * model_to_paper_factor, ms_labels)
    vmx = map(l -> l.x, ms_labels)
    vmy = map(l -> l.y, ms_labels)
    x = model_x_to_paper_x(model_to_paper_factor, O_model_in_paper_space.x, vmx)

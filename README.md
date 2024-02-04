@@ -2,7 +2,7 @@
 
 ## What does it do?
 
-Aid in plotting maps of travel routes and condensing route tables.
+Aid in plotting maps of travel routes and condensing route tables, built on top of `Luxor`, `RouteSlopeDistance`, `LuxorLabels` and `LuxorLayout`.
 
 Start by creating and activating a ModelSpace. 
 
@@ -10,7 +10,8 @@ ModelSpace will contain output paper size, font size, the full label collection 
 world coordinates to model coordinates.
 
 'Activation' establishes a current Cairo recording session, an in-memory current drawing using 
-model coordinates from which we can harvest snapshot images.
+model coordinates from which we can harvest snapshot images. At taking a snapshot, the model is projected 
+into paper space, labels are optimized against overlapping, and placed in an overlay.
 
 A route Leg is a path, often with separate paths for separate directions, and two end labels.
 
@@ -23,6 +24,8 @@ in recognizing when information from different sources can be reduced. For examp
    2) Another journey also includes A -> B, but ends at B. The info is passed to, `add_or_update_if_not_redundant!`,
    which recognizes it as a redundant. No new Leg is added to the legs collection. However, 
    B is recognized as a possible journey destination, giving it a higher prominence. 
+
+<img src="example/Split/Routemap-002-003.svg" alt = "example/Split/Routemap-002-003.svg" style="display: inline-block; margin: 0 auto; max-width: 640px">
 
 
 ### Example
@@ -44,7 +47,6 @@ RouteMap.ModelSpace(    countimage_startvalue  = 9,
         limiting_height        = Base.RefValue{Int64}(595),
         limiting_width         = Base.RefValue{Int64}(842),
         margin                 = (t = 54, b = 81, l = 72, r = 72),
-        marker_color           = RGB{Float64}(0.347677,0.199863,0.085069),
         labels                 = LabelUTM[],
         utm_grid_size          = 1000,
         utm_grid_thickness     = 0.5)
@@ -60,7 +62,7 @@ Leg with  AB <=> BA:
 
  julia> legs = [leg];
 
-julia> plot_legs_in_model_space_and_collect_labels_in_model!(model, legs)
+julia> plot_legs_in_model_space_and_push_labels_to_model!(model, legs)
 2-element Vector{LabelUTM}:
  LabelUTM("Kjeldsundkrysset", 2.0, 22218.0, 6.938131e6)
  LabelUTM("Myrvåglomma", 1.0, 23920.0, 6.938919e6)
@@ -84,13 +86,14 @@ julia> snap_with_labels(model) # Creates 11.png and 11.svg files.
 
 # More on label selection and map sizing
 
-Fitting many readable labels onto the available paper is challenging, and we plan to expand the options here. 
+Fitting many readable labels onto the available paper can be challenging. The paper space needed can be
+reduced quite a lot by allowing labels to flip diagonally. We use `LuxorLabels.jl` for this.
 
-So far, overlapping labels are simply not shown by default. See `snap_with_labels` keywords.
-(Version 0.0.4 contains the type LabelPaperSpace, which we plan to move to LuxorLabels. Not showing overlapping labels
-currently don't fully work.)
+We can fit labels into a much smaller paper space by using additional modifiers. For example, 
+staggering offset distance two by two. Keyword arguments are passed to `LuxorLabels.LabelPaperSpace'.
+The keyword values can be singular. E.g. `leaderline = false`, which would apply to all labels.
+Or we can differentiate between labels, e.g. `leaderline = [false, true, true]`. Such vector-valued keywords
+must have the same number of elements as our model: `length(model.labels) == 3`. 
 
-Functions for optimizations by now include
+Overlapping labels are not shown by default, though you get warnings. See `snap_with_labels`.
 
-- `minimum_model_to_paper_factor_for_non_overlapping_labels`.
-- `sort_by_vector!`

@@ -1,9 +1,9 @@
-function plot_legs_in_model_space_and_collect_labels_in_model!(m::ModelSpace, legs::Vector{Leg}; 
+function plot_legs_in_model_space_and_push_labels_to_model!(m::ModelSpace, legs::Vector{Leg}; 
         limiting_utm_bb::BoundingBox = BoundingBox(O - Inf, O + Inf))
     for leg in legs
         # Does all or part of leg fall within the limiting boundary box?
         if boundingboxesintersect(leg.bb_utm, limiting_utm_bb)
-            plot_leg_in_model_space(m, leg)
+            plot_leg_in_model_space_and_push_labels_to_model!(m, leg)
         else
             @debug "Some Leg(s) were not plotted because it falls outside of the defined boundary." maxlog = 1
         end
@@ -17,7 +17,7 @@ function plot_legs_in_model_space_and_collect_labels_in_model!(m::ModelSpace, le
 end
 
 """
-    plot_leg_in_model_space(m::ModelSpace, l::Leg)
+    plot_leg_in_model_space_and_push_labels_to_model!(m::ModelSpace, l::Leg)
 
 Plot the leg path, and update the collection of labels in 'model'.
 If this is the first leg to be plotted, centers 'inkextent' around it.
@@ -28,7 +28,7 @@ is a global that is not referred from 'model', but 'model' keeps
 metadata like the labels. Labels may be plotted separately on
 a 'paper space' overlay.
 """
-function plot_leg_in_model_space(m::ModelSpace, l::Leg)
+function plot_leg_in_model_space_and_push_labels_to_model!(m::ModelSpace, l::Leg)
     # World (utm) to model coordinates
     # BA may be empty, which is fine.
     abx = easting_to_model_x(m, l.ABx)
@@ -109,7 +109,7 @@ function add_label_to_collection_and_plot_small_circle!(m, lab; closest_labels_d
     if ! isempty(i_xy)
         @show closest_labels_distance
         labcoll = m.labels[first(i_xy)]
-        throw("The position ($(round(labcoll.x)), $(round(labcoll.y))) is already occupied by a label '$(labcoll.text)'. 
+        @warn("The position ($(round(labcoll.x)), $(round(labcoll.y))) is already occupied by a label '$(labcoll.text)'. 
             Can't add '$(lab.text)' at position ($(round(lab.x)), $(round(lab.y)))!")
     end
     modx = easting_to_model_x(m, lab.x) 
@@ -121,15 +121,17 @@ end
 
 """
     draw_and_encompass_circle(m::ModelSpace, pt)
-    draw_and_encompass_circle(pt::Point; r = m.FS / 2, marker_color = m.marker_color)
+    draw_and_encompass_circle(pt::Point; r = 11.0, linewidth = 1.0)
 
 Draws on the model space canvas, which is a global activated through `model_activate`.
 """
-draw_and_encompass_circle(m::ModelSpace, pt) = draw_and_encompass_circle(pt; r = m.FS / 2, marker_color = m.marker_color)
-function draw_and_encompass_circle(pt::Point; r = 11.0, marker_color = ColorSchemes.browncyan[1])
+draw_and_encompass_circle(m::ModelSpace, pt) = draw_and_encompass_circle(pt; 
+    r = m.linewidth, 
+    linewidth = m.linewidth)
+function draw_and_encompass_circle(pt::Point; r = 11.0, linewidth = 1.0)
     @layer begin
-        setcolor(marker_color)
-        circle(pt, r, :stroke)
+        setline(linewidth)
+        circle(pt, r, :fill)
     end
     encompass(pt + r)
     encompass(pt - r)
@@ -194,9 +196,9 @@ See ModelSpace for details.
     limiting_height    In this context, paper width in pt (landscape mode).
     limiting_width     In this context, paper height in pt (landscape mode).
     margin
-    crashpadding
-    marker_color
     labels
+    utm_grid_size
+    utm_grid_thickness
 """
 function model_activate(m::ModelSpace)
     update_layout(m)
@@ -209,13 +211,11 @@ function model_activate(m::ModelSpace)
     background(m.background)
     setcolor(m.foreground)
     fontsize(m.FS)
-    countimage_setvalue(m.countimage_startvalue)
+    countimage_set(m.countimage_startvalue)
     m
 end
-function model_activate(;kw...)
-    model_config = ModelSpace(; kw...)
-    model_activate(model_config)
-end
+model_activate(;kw...) = model_activate(ModelSpace(; kw...))
+
 
 function LabelModelSpace(m::ModelSpace, l::LabelUTM)
     LabelModelSpace(l.text, l.prominence, easting_to_model_x(m, l.x), northing_to_model_y(m, l.y))
