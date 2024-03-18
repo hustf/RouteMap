@@ -3,14 +3,16 @@ module RouteMap
 export Leg, add_or_update_if_not_redundant!, LabelUTM, LabelModelSpace
 export snap, snap_with_labels, adapt_model_paper_size_and_snap!
 export model_activate, plot_leg_in_model_space, plot_legs_in_model_space_and_push_labels_to_model!
-export countimage_get, countimage_set
-export draw_utm_grid, draw_and_encompass_circle, minimum_model_to_paper_factor_for_non_overlapping_labels, encompass
-export sort_by_vector!
+export leg_offset, sort_by_vector!, single_match_in, update_layout
 # export transformations
 export easting_to_model_x, northing_to_model_y, model_x_to_easting, model_y_to_northing
 export paper_x_to_model_x, paper_y_to_model_y, model_x_to_paper_x, model_y_to_paper_y
 export world_to_model_factor, world_to_paper_factor, model_to_paper_factor
-export utm_to_model, paper_to_model
+export utm_to_model, paper_to_model, paper_to_utm, model_to_utm
+# reexports
+export countimage_get, countimage_set
+export draw_utm_grid, draw_and_encompass_circle, minimum_model_to_paper_factor_for_non_overlapping_labels, encompass
+
 using LuxorLayout, LuxorLabels, ColorSchemes
 using ColorSchemes: Colorant
 import Luxor
@@ -18,9 +20,12 @@ using Luxor: Drawing, background, setline, settext, BoundingBox
 using Luxor: sethue, get_current_color, poly, Point, setcolor, fontsize
 using Luxor: @layer, O, textextents, setopacity, text, setdash, line, circle
 using Luxor: midpoint, box, boundingboxesintersect
-using Luxor: newpath, do_action, boxwidth, boxheight
+using Luxor: newpath, do_action, boxwidth, boxheight, setlinecap, setlinejoin
 import Base: show
 import Base.Iterators
+import BSplines
+using BSplines: BSplineBasis, Spline, Derivative, Function
+
 
 "An alias. A conversion of a 'multi_linestring' to numeric nested 3D"
 const Mls = Vector{Vector{Tuple{Float64, Float64, Float64}}}
@@ -121,4 +126,5 @@ include("paper_space.jl")
 include("utm_grid.jl")
 include("io.jl")
 include("utils_paper_adaption.jl")
+include("leg_offset.jl")
 end

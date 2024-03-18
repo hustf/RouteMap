@@ -1,15 +1,16 @@
 name = "RouteMap"
 uuid = "d7e0e77e-ebb7-4d52-98f7-0a2e09d5d09a"
 authors = ["hustf <hustf@users.noreply.github.com> and contributors"]
-version = "0.2.0"
+version = "0.2.1"
 
 [deps]
+BSplines = "488c2830-172b-11e9-1591-253b8a7df96d"
 ColorSchemes = "35d6a980-a343-548e-a6ea-1d62b119f2f4"
-Pango_jll = "36c8627f-9965-5494-a995-c6b170f724f3"
+HTTP = "cd3eb016-35fb-5094-929b-558a96fad6f3"
 Luxor = "ae8d54c2-7ccd-5906-9d76-62fc9837b5bc"
 LuxorLabels = "bc38f42f-d837-40aa-8305-15f3941c28e9"
 LuxorLayout = "909dfbbc-cb73-418e-9556-eed3773b40ca"
-
+Pango_jll = "36c8627f-9965-5494-a995-c6b170f724f3"
 
 [compat]
 Pango_jll = "=1.42.4"

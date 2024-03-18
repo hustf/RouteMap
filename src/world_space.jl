@@ -112,40 +112,54 @@ function add_or_update_if_not_redundant!(legs::Vector{Leg};
 end
 function add_or_update_if_not_redundant!(legs::Vector{Leg}, leg::Leg; threshold = 85.0)
     @debug "Considering to add leg to collection:  $(leg.label_A)  - $(leg.label_B)"
-    if leg.label_A.text == "Eiksund skule" && leg.label_B.text == "Havåg"
-        println("TODO Debug!")
-    end
-    maybe_equal_indices = indices_of_intersecting_boundary_boxes(legs, leg)
-    if isempty(maybe_equal_indices)
-        # Nothing with similar boundingbox to leg in legs; add leg!
+    if ! single_match_in(leg, legs; threshold)
         return push!(legs, leg)
-    end
-    indices_close_or_equal = maybe_equal_indices[findall(maybe_equal_indices) do i
-        l = legs[i]
-        are_paths_close(l, leg; threshold)
-    end]
-    if  length(indices_close_or_equal) == 1
+    else
+        maybe_equal_indices = indices_of_intersecting_boundary_boxes(legs, leg)
+        indices_close_or_equal = maybe_equal_indices[findall(maybe_equal_indices) do i
+            l = legs[i]
+            are_paths_close(l, leg; threshold)
+        end]
+        if isempty(indices_close_or_equal)
+            return push!(legs, leg)
+        end
+        @assert length(indices_close_or_equal) == 1
         i = first(indices_close_or_equal)
         # leg practically equals legs[i]. So we don't need to add more legs, 
         # but we want to keep the "best" parts of both 'leg' and legs[i]
         mergedleg = merge_redundant_legs(legs[i], leg)
         legs[i] = mergedleg
         return legs
-    elseif isempty(indices_close_or_equal)
-        # Although this leg has bounding box overlapping with other legs,
-        # the leg paths were not sufficiently close to be merged.
-        return push!(legs, leg)
-    elseif length(indices_close_or_equal) > 1
-        @warn "Not sure how this could happen. Why are two of the existing legs close or equal to this one? Dropping merge."
-        for i in indices_close_or_equal
-            @show i legs[i]
-            # There may be borderline cases where this happen....
-            @assert length(indices_close_or_equal) < 2 "Two sufficiently equal legs exist in `legs` already"
-        end
-        return legs
     end
 end
 
+
+"""
+    single_match_in(leg::Leg, legs::Vector{Leg}; threshold = 85.0)
+    ---> Bool
+
+Matches are not necessarily exact. Especially, we expect label prominence to vary.
+"""
+function single_match_in(leg::Leg, legs::Vector{Leg}; threshold = 85.0)
+    maybe_equal_indices = indices_of_intersecting_boundary_boxes(legs, leg)
+    if isempty(maybe_equal_indices)
+        # Nothing with similar boundingbox to leg in legs; add leg!
+        return false
+    end
+    indices_close_or_equal = maybe_equal_indices[findall(maybe_equal_indices) do i
+        l = legs[i]
+        are_paths_close(l, leg; threshold)
+    end]
+    if  length(indices_close_or_equal) == 1
+        return true
+    elseif isempty(indices_close_or_equal)
+        # Although this leg has bounding box overlapping with other legs,
+        # the leg paths were not sufficiently close to be merged.
+        return false
+    else
+        throw(ArgumentError("itr seems to contain multiple close matches to leg $leg"))
+    end
+end
 
 function indices_of_intersecting_boundary_boxes(legs::Vector{Leg}, leg::Leg) 
     findall(legs) do leg_in_collection
@@ -177,7 +191,8 @@ function merge_redundant_legs_with_same_direction(leg1, leg2)
     if lba.text !== leg1.label_A.text || lbb.text !== leg1.label_B.text
         printstyled("        A1B1   : $(leg1.label_A.text) - $(leg1.label_B.text) B2A2: $(leg2.label_B.text) - $(leg2.label_A.text) ", color =:red)
         printstyled("\nis now: A1B1   : $(lba.text) - $(lbb.text) B2A2: $(lbb.text) - $(lba.text)\n", color =:green)
-        throw("check that!")
+        @warn "Now check why we ended up here! Continuing in 10 s...."
+        sleep(10)
     end
     if ! isempty(leg1.BAx)
         # leg1 has asymmetric directions, so keep A1B1 and B1A1
@@ -217,7 +232,9 @@ function label_in_close_proximity_to_keep(lab1::Label, lab2::Label)
         # Keep label 1
         if lab1.text !== lab2.text
             @warn "Keeping \"$(lab1.text)\", discarding \"$(lab2.text)\""
-            throw("Carefully consider lowering the proximimity threshold value instead of joining legs! Keyword 'threshold'")
+            @warn "Carefully consider lowering the proximimity threshold value instead of joining legs! Keyword 'threshold'"
+            println("       continuing in 5 sec.")
+            sleep(5)
         end
         lab1
     else 

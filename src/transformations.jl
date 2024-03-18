@@ -95,6 +95,17 @@ function paper_to_model(m::ModelSpace, bb::BoundingBox)
     BoundingBox(Point(xs[1], ys[1]), Point(xs[2], ys[2]))
 end
 
+function paper_to_utm(m::ModelSpace, bb::BoundingBox)
+    xs = paper_x_to_easting(m, [bb.corner1.x, bb.corner2.x])
+    ys = paper_y_to_northing(m, [bb.corner1.y, bb.corner2.y])
+    BoundingBox(Point(xs[1], ys[1]), Point(xs[2], ys[2]))
+end
+
+function model_to_utm(m::ModelSpace, bb::BoundingBox)
+    xs = model_x_to_easting(m, [bb.corner1.x, bb.corner2.x])
+    ys = model_y_to_northing(m, [bb.corner1.y, bb.corner2.y])
+    BoundingBox(Point(xs[1], ys[1]), Point(xs[2], ys[2]))
+end
 """
     update_layout(model)    ---> Nothing
 

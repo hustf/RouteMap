@@ -15,6 +15,9 @@ function run_all_tests()
     @testset "5" begin
         include("t_adapt_paper_to_label_stacking.jl")
     end
+    @testset "6" begin
+        include("t_draw_offset.jl")
+    end
 end
 
 # This is copied directly from Luxor.
