@@ -25,7 +25,7 @@ in recognizing when information from different sources can be reduced. For examp
    which recognizes it as a redundant. No new Leg is added to the legs collection. However, 
    B is recognized as a possible journey destination, giving it a higher prominence. 
 
-<img src="example/Split/Routemap-002-003.svg" alt = "example/Split/Routemap-002-003.svg" style="display: inline-block; margin: 0 auto; max-width: 640px">
+<img src="resources/Routemap-002-003.svg" alt = "resources/Routemap-002-003.svg" style="display: inline-block; margin: 0 auto; max-width: 640px">
 
 
 ### Example
